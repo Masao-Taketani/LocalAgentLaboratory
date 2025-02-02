@@ -2,6 +2,7 @@ import time, tiktoken
 import openai
 import os, anthropic, json
 from transformers import set_seed
+from transformers.pipelines.text_generation import TextGenerationPipeline
 
 TOKENS_IN = dict()
 TOKENS_OUT = dict()
@@ -55,13 +56,6 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                     completion = client.chat.completions.create(
                         model=model_or_pipe, messages=messages, temperature=temp)
                 answer = completion.choices[0].message.content
-                if "deepseek-r1" in model_or_pipe.lower(): 
-                    thought, answer = answer.split("</think>")
-                    answer = answer[2:]
-                    if show_r1_thought:
-                        print("\n\n[DeepSeek R1's thought process starts here]")
-                        print(thought.split("<think>")[1][1:])
-                        print("[DeepSeek R1's thought process ends here]\n\n")
 
             elif platform == "huggingface":
                 prompt = model_or_pipe.tokenizer.apply_chat_template(
@@ -80,15 +74,18 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                                          max_new_tokens=MAX_NUM_TOKENS,
                 )
                 answer = response[0]["generated_text"][len(prompt):]
-                if "deepseek-r1" in model_or_pipe.tokenizer.name_or_path.lower(): 
-                    thought, answer = answer.split("</think>")
-                    answer = answer[2:]
-                    if show_r1_thought:
-                        print("\n\n[DeepSeek R1's thought process starts here]")
-                        print(thought.split("<think>")[1][1:])
-                        print("[DeepSeek R1's thought process ends here]\n\n")
+                    
             else:
                 raise ValueError(f"Platform {platform} is not supported.")
+
+            if (isinstance(model_or_pipe, str) and "deepseek-r1" in model_or_pipe.lower()) \
+            or (isinstance(model_or_pipe, TextGenerationPipeline) and "deepseek-r1" in model_or_pipe.tokenizer.name_or_path.lower()):
+                thought, answer = answer.split("</think>")
+                answer = answer[2:]
+                if show_r1_thought:
+                    print("\n\n[DeepSeek R1's thought process starts here]")
+                    print(thought.split("<think>")[1][1:])
+                    print("[DeepSeek R1's thought process ends here]\n\n")
 
             return answer
         except Exception as e:
