@@ -12,7 +12,7 @@ DEFAULT_LLM_BACKBONE = "o1-mini"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
+    def __init__(self, research_topic, max_steps=100, num_papers_lit_review=5, platform, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
                  notes=list(), human_in_loop_flag=None, compile_pdf=True, mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
@@ -101,9 +101,11 @@ class LaboratoryWorkflow:
         os.mkdir(os.path.join("./research_dir", "src"))
         os.mkdir(os.path.join("./research_dir", "tex"))
 
-    def set_model(self, model):
-        self.set_agent_attr("model", model)
-        self.reviewers.model = model
+    def set_model(self, platform, model_or_pipe):
+        self.set_agent_attr("platform", platform)
+        self.set_agent_attr("model_or_pipe", model_or_pipe)
+        self.reviewers.platform = platform
+        self.reviewers.model_or_pipe = model_or_pipe
 
     def save_state(self, phase):
         """
@@ -151,8 +153,8 @@ class LaboratoryWorkflow:
                 if self.verbose: print(f"{'&'*30}\nBeginning subtask: {subtask}\n{'&'*30}")
                 if type(self.phase_models) == dict:
                     if subtask in self.phase_models:
-                        self.set_model(self.phase_models[subtask])
-                    else: self.set_model(f"{DEFAULT_LLM_BACKBONE}")
+                        self.set_model(self.platform, self.phase_models[subtask])
+                    else: self.set_model(self.platform, f"{DEFAULT_LLM_BACKBONE}")
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "literature review":
                     repeat = True
                     while repeat: repeat = self.literature_review()
@@ -570,10 +572,18 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--platform",
+        type=str,
+        default="ollama",
+        choices=AVAILABLE_PLATFORMS,
+        help="Model platform to use for AI Scientist.",
+    )
+
+    parser.add_argument(
         '--llm-backend',
         type=str,
-        default="o1-mini",
-        help='Backend LLM to use for agents in Agent Laboratory.'
+        default="qwen2.5:72b-instruct-q4_K_S",
+        help="Specify a name of your model from available platforms for the backend LLM to use for agents in Agent Laboratory."
     )
 
     parser.add_argument(
@@ -611,6 +621,7 @@ def parse_arguments():
 if __name__ == "__main__":
     args = parse_arguments()
 
+    platform = args.platform
     llm_backend = args.llm_backend
     human_mode = args.copilot_mode.lower() == "true"
     compile_pdf = args.compile_latex.lower() == "true"
@@ -701,6 +712,7 @@ if __name__ == "__main__":
         lab = LaboratoryWorkflow(
             research_topic=research_topic,
             notes=task_notes_LLM,
+            platform=platform,
             agent_model_backbone=agent_models,
             human_in_loop_flag=human_in_loop,
             compile_pdf=compile_pdf,

@@ -4,31 +4,6 @@ import os, anthropic, json
 from transformers import set_seed
 from transformers.pipelines.text_generation import TextGenerationPipeline
 
-TOKENS_IN = dict()
-TOKENS_OUT = dict()
-
-encoding = tiktoken.get_encoding("cl100k_base")
-
-def curr_cost_est():
-    costmap_in = {
-        "gpt-4o": 2.50 / 1000000,
-        "gpt-4o-mini": 0.150 / 1000000,
-        "o1-preview": 15.00 / 1000000,
-        "o1-mini": 3.00 / 1000000,
-        "claude-3-5-sonnet": 3.00 / 1000000,
-        "deepseek-chat": 1.00 / 1000000,
-        "o1": 15.00 / 1000000,
-    }
-    costmap_out = {
-        "gpt-4o": 10.00/ 1000000,
-        "gpt-4o-mini": 0.6 / 1000000,
-        "o1-preview": 60.00 / 1000000,
-        "o1-mini": 12.00 / 1000000,
-        "claude-3-5-sonnet": 12.00 / 1000000,
-        "deepseek-chat": 5.00 / 1000000,
-        "o1": 60.00 / 1000000,
-    }
-    return sum([costmap_in[_]*TOKENS_IN[_] for _ in TOKENS_IN]) + sum([costmap_out[_]*TOKENS_OUT[_] for _ in TOKENS_OUT])
 
 def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False):
     for _ in range(tries):
@@ -93,6 +68,3 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
             time.sleep(timeout)
             continue
     raise Exception("Max retries: timeout")
-
-
-#print(query_model(model_str="o1-mini", prompt="hi", system_prompt="hey"))

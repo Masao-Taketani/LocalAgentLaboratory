@@ -1,4 +1,4 @@
-from utils import *
+from utils import extract_prompt
 from tools import *
 from inference import query_model
 
@@ -34,7 +34,7 @@ def extract_json_between_markers(llm_output):
 
 
 
-def get_score(outlined_plan, latex, reward_model_llm, reviewer_type=None, attempts=3):
+def get_score(outlined_plan, latex, platform, model_or_pipe, show_r1_thought=False, reviewer_type=None, attempts=3):
     e = str()
     for _attempt in range(attempts):
         try:
@@ -141,11 +141,14 @@ def get_score(outlined_plan, latex, reward_model_llm, reviewer_type=None, attemp
                       f"Be critical and cautious in your decision. {reviewer_type}\n"
                   ) + neurips_form
             scoring = query_model(
-                model_str=f"{reward_model_llm}",
+                platform=platform, 
+                model_or_pipe=model_or_pipe,
                 system_prompt=sys,
                 prompt=(
                     f"Outlined in the following text is the research plan that the machine learning engineer was tasked with building: {outlined_plan}\n\n"
-                    f"The following text is the research latex that the model produced: \n{latex}\n\n"), temp=0.0)
+                    f"The following text is the research latex that the model produced: \n{latex}\n\n"), 
+                temp=0.0,
+                show_r1_thought=show_r1_thought)
             review_json = extract_json_between_markers(scoring)
 
             overall = int(review_json["Overall"]) / 10
@@ -182,30 +185,33 @@ def get_score(outlined_plan, latex, reward_model_llm, reviewer_type=None, attemp
 
 
 class ReviewersAgent:
-    def __init__(self, model="gpt-4o-mini", notes=None):
+    def __init__(self, platform, model_or_pipe, show_r1_thought, notes=None):
         if notes is None: self.notes = []
         else: self.notes = notes
-        self.model = model
+        self.platform = self.platform
+        self.model_or_pipe = model_or_pipe
 
     def inference(self, plan, report):
         reviewer_1 = "You are a harsh but fair reviewer and expect good experiments that lead to insights for the research topic."
-        review_1 = get_score(outlined_plan=plan, latex=report, reward_model_llm=self.model, reviewer_type=reviewer_1)
+        review_1 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_1)
 
         reviewer_2 = "You are a harsh and critical but fair reviewer who is looking for an idea that would be impactful in the field."
-        review_2 = get_score(outlined_plan=plan, latex=report, reward_model_llm=self.model, reviewer_type=reviewer_2)
+        review_2 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_2)
 
         reviewer_3 = "You are a harsh but fair open-minded reviewer that is looking for novel ideas that have not been proposed before."
-        review_3 = get_score(outlined_plan=plan, latex=report, reward_model_llm=self.model, reviewer_type=reviewer_3)
+        review_3 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_3)
 
         return f"Reviewer #1:\n{review_1}, \nReviewer #2:\n{review_2}, \nReviewer #3:\n{review_3}"
 
 
 class BaseAgent:
-    def __init__(self, model="gpt-4o-mini", notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.max_steps = max_steps
-        self.model = model
+        self.platform = platform
+        self.model_or_pipe = model_or_pipe
+        self.show_r1_thought = show_r1_thought
         self.phases = []
         self.plan = str()
         self.report = str()
@@ -225,8 +231,9 @@ class BaseAgent:
         self.second_round = False
         self.max_hist_len = 15
 
-    def set_model_backbone(self, model):
-        self.model = model
+    def set_model_backbone(self, platform, model_or_pipe):
+        self.platform = platform
+        self.model_or_pipe = model_or_pipe
 
     @staticmethod
     def clean_text(text):
@@ -250,7 +257,7 @@ class BaseAgent:
             f"Current Step #{step}, Phase: {phase}\n{complete_str}\n"
             f"[Objective] Your goal is to perform research on the following topic: {research_topic}\n"
             f"Feedback: {feedback}\nNotes: {notes_str}\nYour previous command was: {self.prev_comm}. Make sure your new output is very different.\nPlease produce a single command below:\n")
-        model_resp = query_model(model_str=self.model, system_prompt=sys_prompt, prompt=prompt, temp=temp)
+        model_resp = query_model(platform=self.platform, model_or_pipe=self.model_or_pipe, system_prompt=sys_prompt, prompt=prompt, temp=temp, show_r1_thought=self.show_r1_thought)
         print("^"*50, phase, "^"*50)
         model_resp = self.clean_text(model_resp)
         self.prev_comm = model_resp
