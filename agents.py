@@ -22,6 +22,8 @@ def extract_json_between_markers(llm_output):
             # Attempt to fix common JSON issues
             try:
                 # Remove invalid control characters
+                # For details, refer to the following webpage.
+                # https://stackoverflow.com/questions/1176904/how-to-remove-all-non-printable-characters-in-a-string
                 json_string_clean = re.sub(r"[\x00-\x1F\x7F]", "", json_string)
                 parsed_json = json.loads(json_string_clean)
                 return parsed_json
