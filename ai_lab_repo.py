@@ -29,6 +29,7 @@ class LaboratoryWorkflow:
         self.research_topic = research_topic
         self.model_backbone = agent_model_backbone
         self.num_papers_lit_review = num_papers_lit_review
+        self.platform = platform
 
         self.print_cost = True
         self.review_override = True # should review be overridden?
@@ -84,12 +85,13 @@ class LaboratoryWorkflow:
 
         self.save = True
         self.verbose = True
-        self.reviewers = ReviewersAgent(model=self.model_backbone, notes=self.notes)
-        self.phd = PhDStudentAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        self.postdoc = PostdocAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        self.professor = ProfessorAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        self.ml_engineer = MLEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        self.sw_engineer = SWEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        # Following instantiations are not used
+        #self.reviewers = ReviewersAgent(model=self.model_backbone, notes=self.notes)
+        #self.phd = PhDStudentAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        #self.postdoc = PostdocAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        #self.professor = ProfessorAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        #self.ml_engineer = MLEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        #self.sw_engineer = SWEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
 
         # remove previous files
         remove_figures()
