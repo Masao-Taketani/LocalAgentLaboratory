@@ -297,8 +297,8 @@ class BaseAgent:
 
 
 class ProfessorAgent(BaseAgent):
-    def __init__(self, model="gpt4omini", notes=None, max_steps=100):
-        super().__init__(model, notes, max_steps)
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+        super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = ["report writing"]
 
     def generate_readme(self):
@@ -307,7 +307,7 @@ class ProfessorAgent(BaseAgent):
         prompt = (
             f"""History: {history_str}\n{'~' * 10}\n"""
             f"Please produce the readme below in markdown:\n")
-        model_resp = query_model(model_str=self.model, system_prompt=sys_prompt, prompt=prompt)
+        model_resp = query_model(platform=self.platform, model_or_pipe=self.model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_r1_thought=self.show_r1_thought)
         return model_resp.replace("```markdown", "")
 
     def context(self, phase):
@@ -363,8 +363,8 @@ class ProfessorAgent(BaseAgent):
 
 
 class PostdocAgent(BaseAgent):
-    def __init__(self, model="gpt4omini", notes=None, max_steps=100):
-        super().__init__(model, notes, max_steps)
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+        super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = ["plan formulation", "results interpretation"]
 
     def context(self, phase):
@@ -439,8 +439,8 @@ class PostdocAgent(BaseAgent):
 
 
 class MLEngineerAgent(BaseAgent):
-    def __init__(self, model="gpt4omini", notes=None, max_steps=100):
-        super().__init__(model, notes, max_steps)
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+        super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "data preparation",
             "running experiments",
@@ -505,8 +505,8 @@ class MLEngineerAgent(BaseAgent):
 
 
 class SWEngineerAgent(BaseAgent):
-    def __init__(self, model="gpt4omini", notes=None, max_steps=100):
-        super().__init__(model, notes, max_steps)
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+        super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "data preparation",
         ]
@@ -561,8 +561,8 @@ class SWEngineerAgent(BaseAgent):
 
 
 class PhDStudentAgent(BaseAgent):
-    def __init__(self, model="gpt4omini", notes=None, max_steps=100):
-        super().__init__(model, notes, max_steps)
+    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+        super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "literature review",
             "plan formulation",
@@ -624,7 +624,7 @@ class PhDStudentAgent(BaseAgent):
         prompt = (
             f"""History: {history_str}\n{'~' * 10}\n"""
             f"Please produce the requirements.txt below in markdown:\n")
-        model_resp = query_model(model_str=self.model, system_prompt=sys_prompt, prompt=prompt)
+        model_resp = query_model(platform=self.platform, model_or_pipe=self.model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_r1_thought=self.show_r1_thought)
         return model_resp
 
     def example_command(self, phase):
