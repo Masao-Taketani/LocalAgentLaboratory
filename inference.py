@@ -1,5 +1,5 @@
 import time, tiktoken
-import openai
+from openai import OpenAI
 import os, anthropic, json
 from transformers import set_seed
 from transformers.pipelines.text_generation import TextGenerationPipeline
@@ -25,9 +25,9 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}]
 
-                    client = openai.OpenAI(base_url='http://localhost:11434/v1/',
-                                            api_key='ollama', # required but ignored
-                                            )
+                    client = OpenAI(base_url='http://localhost:11434/v1/',
+                                    api_key='ollama', # required but ignored
+                                    )
                     completion = client.chat.completions.create(
                         model=model_or_pipe, messages=messages, temperature=temp)
                 answer = completion.choices[0].message.content
@@ -46,7 +46,6 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                 response = model_or_pipe(prompt,
                                          do_sample=True,
                                          temperature=temp,
-                                         max_new_tokens=MAX_NUM_TOKENS,
                 )
                 answer = response[0]["generated_text"][len(prompt):]
                     

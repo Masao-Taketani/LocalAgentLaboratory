@@ -650,15 +650,19 @@ if __name__ == "__main__":
     else:
         research_topic = args.research_topic
 
+    if platform == "ollama":
+        call_model = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content\nif "deepseek-r1" in "{llm_backend}".lower():\n\t_, answer = answer.split("</think>")\n\tanswer = answer[2:]'
+    elif platform == "huggingface":
+        call_model = f''
     task_notes_LLM = [
         {"phases": ["plan formulation"],
          "note": f"You should come up with a plan for TWO experiments."},
 
         {"phases": ["plan formulation", "data preparation", "running experiments"],
-         "note": "Please use gpt-4o-mini for your experiments."},
+         "note": f"Please use {llm_backend} for your experiments."},
 
         {"phases": ["running experiments"],
-         "note": f'Use the following code to inference gpt-4o-mini: \nfrom openai import OpenAI\nos.environ["OPENAI_API_KEY"] = "{api_key}"\nclient = OpenAI()\ncompletion = client.chat.completions.create(\nmodel="gpt-4o-mini-2024-07-18", messages=messages)\nanswer = completion.choices[0].message.content\n'},
+         "note": f'Use the following code to inference {llm_backend}: \n{call_model}\n'},
 
         {"phases": ["running experiments"],
          "note": f"You have access to only gpt-4o-mini using the OpenAI API, please use the following key {api_key} but do not use too many inferences. Do not use openai.ChatCompletion.create or any openai==0.28 commands. Instead use the provided inference code."},
