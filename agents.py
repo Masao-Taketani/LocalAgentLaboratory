@@ -3,6 +3,17 @@ from tools import *
 from inference import query_model
 
 
+def init_hf_pipe(model):
+    from transformers import pipeline
+    import torch
+    torch_dtype = torch.float16 if "awq" in model.lower() else torch.bfloat16
+    pipe = pipeline("text-generation", 
+                    model=model, 
+                    model_kwargs={"torch_dtype": torch_dtype}, 
+                    device_map="auto")
+    return pipe
+
+
 def extract_json_between_markers(llm_output):
     # Regular expression pattern to find JSON content between ```json and ```
     json_pattern = r"```json(.*?)```"

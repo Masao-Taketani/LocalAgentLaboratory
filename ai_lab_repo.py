@@ -1,4 +1,4 @@
-from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent
+from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe
 from until import extract_prompt
 from copy import copy
 from common_imports import *
@@ -8,7 +8,8 @@ from torch.backends.mkl import verbose
 import argparse
 import pickle
 
-DEFAULT_LLM_BACKBONE = "o1-mini"
+DEFAULT_PLATFORM = "ollama"
+DEFAULT_LLM_BACKBONE = "qwen2.5:72b-instruct-q4_K_S"
 
 
 class LaboratoryWorkflow:
@@ -30,6 +31,8 @@ class LaboratoryWorkflow:
         self.model_backbone = agent_model_backbone
         self.num_papers_lit_review = num_papers_lit_review
         self.platform = platform
+        if self.platform == "huggingface":
+            self.pipe = init_hf_pipe(agent_model_backbone["literature review"])
 
         self.print_cost = True
         self.review_override = True # should review be overridden?
@@ -103,11 +106,15 @@ class LaboratoryWorkflow:
         os.mkdir(os.path.join("./research_dir", "src"))
         os.mkdir(os.path.join("./research_dir", "tex"))
 
-    def set_model(self, platform, model_or_pipe):
-        self.set_agent_attr("platform", platform)
-        self.set_agent_attr("model_or_pipe", model_or_pipe)
-        self.reviewers.platform = platform
-        self.reviewers.model_or_pipe = model_or_pipe
+    def set_model(self, model):
+        self.set_agent_attr("platform", self.platform)
+        self.reviewers.platform = self.platform
+        if self.platform == "ollama":
+            self.set_agent_attr("model_or_pipe", model)
+            self.reviewers.model_or_pipe = model
+        elif self.platform == "huggingface":
+            self.set_agent_attr("model_or_pipe", self.pipe)
+            self.reviewers.model_or_pipe = self.pipe
 
     def save_state(self, phase):
         """
@@ -155,8 +162,10 @@ class LaboratoryWorkflow:
                 if self.verbose: print(f"{'&'*30}\nBeginning subtask: {subtask}\n{'&'*30}")
                 if type(self.phase_models) == dict:
                     if subtask in self.phase_models:
-                        self.set_model(self.platform, self.phase_models[subtask])
-                    else: self.set_model(self.platform, f"{DEFAULT_LLM_BACKBONE}")
+                        self.set_model(self.phase_models[subtask])
+                    else:
+                        self.platform = DEFAULT_PLATFORM 
+                        self.set_model(f"{DEFAULT_LLM_BACKBONE}")
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "literature review":
                     repeat = True
                     while repeat: repeat = self.literature_review()
@@ -651,9 +660,16 @@ if __name__ == "__main__":
         research_topic = args.research_topic
 
     if platform == "ollama":
-        call_model = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content\nif "deepseek-r1" in "{llm_backend}".lower():\n\t_, answer = answer.split("</think>")\n\tanswer = answer[2:]'
+        if "deepseek-r1" in llm_backend:
+            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
+        else:
+            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content'
     elif platform == "huggingface":
-        call_model = f''
+        if "deepseek-r1" in llm_backend:
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{llm_backend}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
+        else:
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{llm_backend}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True)\nanswer = response[0]["generated_text"][len(prompt):]'
+
     task_notes_LLM = [
         {"phases": ["plan formulation"],
          "note": f"You should come up with a plan for TWO experiments."},
@@ -662,16 +678,16 @@ if __name__ == "__main__":
          "note": f"Please use {llm_backend} for your experiments."},
 
         {"phases": ["running experiments"],
-         "note": f'Use the following code to inference {llm_backend}: \n{call_model}\n'},
+         "note": f'Use the following code to inference {llm_backend}: \n{call_model_prompt}\n'},
 
         {"phases": ["running experiments"],
-         "note": f"You have access to only gpt-4o-mini using the OpenAI API, please use the following key {api_key} but do not use too many inferences. Do not use openai.ChatCompletion.create or any openai==0.28 commands. Instead use the provided inference code."},
+         "note": f"You have access to only {llm_backend}, but do not use too many inferences. Use the provided inference code."},
 
         {"phases": ["running experiments"],
          "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
 
         {"phases": ["data preparation", "running experiments"],
-         "note": "You are running on a MacBook laptop. You can use 'mps' with PyTorch"},
+         "note": "You are running programs on Ubuntu."},
 
         {"phases": ["data preparation", "running experiments"],
          "note": "Generate figures with very colorful and artistic design."},
