@@ -1,9 +1,9 @@
 from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe
 from until import extract_prompt
 from copy import copy
-from common_imports import *
 from mlesolver import MLESolver
 from torch.backends.mkl import verbose
+from tools import ArxivSearch
 
 import argparse
 import pickle
@@ -89,12 +89,12 @@ class LaboratoryWorkflow:
         self.save = True
         self.verbose = True
         # Following instantiations are not used
-        #self.reviewers = ReviewersAgent(model=self.model_backbone, notes=self.notes)
-        #self.phd = PhDStudentAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        #self.postdoc = PostdocAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        #self.professor = ProfessorAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        #self.ml_engineer = MLEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
-        #self.sw_engineer = SWEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        self.reviewers = ReviewersAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes)
+        self.phd = PhDStudentAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        self.postdoc = PostdocAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        self.professor = ProfessorAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        self.ml_engineer = MLEngineerAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
+        self.sw_engineer = SWEngineerAgent(platform=self.platform, model_or_pipe=self.model_backbone, notes=self.notes, max_steps=self.max_steps)
 
         # remove previous files
         remove_figures()
