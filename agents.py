@@ -364,7 +364,7 @@ class ProfessorAgent(BaseAgent):
         if phase not in self.phases:
             raise Exception(f"Invalid phase: {phase}")
         phase_str = (
-            "You are directing a PhD student to help them write a report in latex based on results from an experiment, and you interact with them through dialogue.\n"
+            "You are directing a PhD student to help the PhD write a report in latex based on results from an experiment, and you interact with the PhD through dialogue.\n"
             "Your goal is to write a report in latex for an experiment. You should read through the code, read through the interpretation, and look at the results to understand what occurred. You should then discuss with the PhD student how they can write up the results and give their feedback to improve their thoughts.\n"
         )
         return phase_str
@@ -434,12 +434,12 @@ class PostdocAgent(BaseAgent):
             raise Exception(f"Invalid phase: {phase}")
         if phase == "plan formulation":
             phase_str = (
-                "You are directing a PhD student to help them come up with a good plan, and you interact with them through dialogue.\n"
+                "You are directing a PhD student to help the PhD come up with a good plan, and you interact with the PhD through dialogue.\n"
                 "Your goal is to produce plans that would make good experiments for the given topic. You should aim for a very simple experiment that showcases your plan, not a complex one. You should integrate the provided literature review and come up with plans on how to expand and build on these works for the given topic. Your plans should provide a clear outline for how to achieve the task, including what machine learning models to use and implement, what types of datasets should be searched for and used to train the model, and the exact details of the experiment.\n"
             )
         elif phase == "results interpretation":
             phase_str = (
-                "You are directing a PhD student to help them come up with an interpretation for results from an experiment, and you interact with them through dialogue.\n"
+                "You are directing a PhD student to help the PhD come up with an interpretation for results from an experiment, and you interact with the PhD through dialogue.\n"
                 "Your goal is to interpret results from experiments that were previously run. You should read through the code and look at the results to understand what occurred. You should then discuss with the PhD student how they can interpret the results and give their feedback to improve their thoughts. You should integrate the provided literature review, code, and plans to come up with an exciting interpretation that could make a compelling paper. Your plans should provide a clear outline that can be used to write an academic paper.\n"
                 "Your interpretation should include numbers, relevant metrics to the experiment (e.g. accuracy or loss) and measures of significance. You must propagate this information accurately. You must also complete this in a reasonable amount of time and then submit your results.\n"
             )
@@ -505,7 +505,7 @@ class MLEngineerAgent(BaseAgent):
             raise Exception(f"Invalid phase: {phase}")
         if phase == "data preparation":
             phase_str = (
-                "You are a machine learning engineer being directed by a PhD student who will help you write the code, and you can interact with them through dialogue.\n"
+                "You are a machine learning engineer being directed by a software engineer student who will help you write the code, and you can interact with the software engineer through dialogue.\n"
                 "Your goal is to produce code that prepares the data for the provided experiment. You should aim for simple code to prepare the data, not complex code. You should integrate the provided literature review and the plan and come up with code to prepare data for this experiment.\n"
             )
         return phase_str
@@ -562,7 +562,7 @@ class SWEngineerAgent(BaseAgent):
             raise Exception(f"Invalid phase: {phase}")
         elif phase == "data preparation":
             phase_str = (
-                "You are a software engineer directing a machine learning engineer, where the machine learning engineer will be writing the code, and you can interact with them through dialogue.\n"
+                "You are a software engineer directing a machine learning engineer, where the machine learning engineer will be writing the code, and you can interact with the machine learning engineer through dialogue.\n"
                 "Your goal is to help the ML engineer produce code that prepares the data for the provided experiment. You should aim for very simple code to prepare the data, not complex code. You should integrate the provided literature review and the plan and come up with code to prepare data for this experiment.\n"
             )
         return phase_str
@@ -694,12 +694,12 @@ class PhDStudentAgent(BaseAgent):
             phase_str += rev_papers if len(self.lit_review) > 0 else ""
         elif phase == "plan formulation":
             phase_str = (
-                "You are a PhD student being directed by a postdoc who will help you come up with a good plan, and you interact with them through dialogue.\n"
+                "You are a PhD student being directed by a postdoc who will help you come up with a good plan, and you interact with the postdoc through dialogue.\n"
                 "Your goal is to produce plans that would make good experiments for the given topic. You should aim for a very simple experiment that showcases your plan, not a complex one. You should integrate the provided literature review and come up with plans on how to expand and build on these works for the given topic. Your plans should provide a clear outline for how to achieve the task, including what machine learning models to use and implement, what types of datasets should be searched for and used to train the model, and the exact details of the experiment.\n"
             )
         elif phase == "results interpretation":
             phase_str = (
-                "You are a PhD student being directed by a postdoc who will help you come up with an interpretation for results from an experiment, and you interact with them through dialogue.\n"
+                "You are a PhD student being directed by a postdoc who will help you come up with an interpretation for results from an experiment, and you interact with the postdoc through dialogue.\n"
                 "Your goal is to interpret results from experiments that were previously run. You should read through the code and look at the results to understand what occurred. You should then discuss with the postdoc your interpretation and use their feedback to improve your thoughts. You should integrate the provided literature review, code, and plans to come up with an exciting interpretation that could make a compelling paper. Your plans should provide a clear outline that can be used to write an academic paper.\n"
                 "Your interpretation should include numbers, relevant metrics to the experiment (e.g. accuracy or loss) and measures of significance. You must propagate this information accurately.\n"
                 "You must submit the interpretation during this phase in a reasonable amount of time. Do not delay the submission."
