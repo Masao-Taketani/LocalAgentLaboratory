@@ -28,6 +28,12 @@ before using the closed LLMs, such as how many tokens a LLM would produce in ord
 - It is also good if you would like to investigate and experiment what kind of outcomes you can expect when you feed your data for internal 
 investigation purposes.
 
+## Modification
+I have made some modifications in this repo from the original code.
+- Enable you to use local LLMs instead of cloud ones.
+- Fixed some prompts
+- Made clear the import dependencies because the original code frequently uses `import *`, which is not recommended.
+
 
 ## 📖 Overview
 
