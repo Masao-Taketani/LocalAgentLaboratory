@@ -211,13 +211,15 @@ def code_repair(code, error, ctype, REPAIR_LLM, openai_api_key=None):
 
 
 class MLESolver:
-    def __init__(self, dataset_code, platform, model_or_pipe, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None,):
+    def __init__(self, dataset_code, platform, model_or_pipe, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.dataset_code = dataset_code
         if plan is None: self.plan = ""
         else: self.plan = plan
-        self.llm_str = llm_str
+        self.platform = platform
+        self.model_or_pipe = model_or_pipe
+        self.show_r1_thought = show_r1_thought
         self.verbose = False
         self.max_codes = 2
         self.st_hist_len = 2
@@ -229,7 +231,6 @@ class MLESolver:
         self.max_steps = max_steps
         self.prev_code_ret = str()
         self.should_execute_code = True
-        self.openai_api_key = openai_api_key
 
     def initial_solve(self):
         """

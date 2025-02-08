@@ -345,7 +345,7 @@ class LaboratoryWorkflow:
         experiment_notes = [_note["note"] for _note in self.ml_engineer.notes if "running experiments" in _note["phases"]]
         experiment_notes = f"Notes for the task objective: {experiment_notes}\n" if len(experiment_notes) > 0 else ""
         # instantiate mle-solver
-        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.ml_engineer.platform, model_or_pipe=self.ml_engineer.model_or_pipe, show_r1_thought=, notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
+        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.ml_engineer.platform, model_or_pipe=self.ml_engineer.model_or_pipe, show_r1_thought=self.ml_engineer.show_r1_thought, notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
