@@ -196,7 +196,7 @@ def get_score(outlined_plan, latex, platform, model_or_pipe, show_r1_thought=Fal
 
 
 class ReviewersAgent:
-    def __init__(self, platform, model_or_pipe, show_r1_thought, notes=None):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.platform = self.platform
@@ -204,19 +204,19 @@ class ReviewersAgent:
 
     def inference(self, plan, report):
         reviewer_1 = "You are a harsh but fair reviewer and expect good experiments that lead to insights for the research topic."
-        review_1 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_1)
+        review_1 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, reviewer_type=reviewer_1)
 
         reviewer_2 = "You are a harsh and critical but fair reviewer who is looking for an idea that would be impactful in the field."
-        review_2 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_2)
+        review_2 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, reviewer_type=reviewer_2)
 
         reviewer_3 = "You are a harsh but fair open-minded reviewer that is looking for novel ideas that have not been proposed before."
-        review_3 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_3)
+        review_3 = get_score(outlined_plan=plan, latex=report, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, reviewer_type=reviewer_3)
 
         return f"Reviewer #1:\n{review_1}, \nReviewer #2:\n{review_2}, \nReviewer #3:\n{review_3}"
 
 
 class BaseAgent:
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.max_steps = max_steps
@@ -308,7 +308,7 @@ class BaseAgent:
 
 
 class ProfessorAgent(BaseAgent):
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = ["report writing"]
 
@@ -374,7 +374,7 @@ class ProfessorAgent(BaseAgent):
 
 
 class PostdocAgent(BaseAgent):
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = ["plan formulation", "results interpretation"]
 
@@ -450,7 +450,7 @@ class PostdocAgent(BaseAgent):
 
 
 class MLEngineerAgent(BaseAgent):
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "data preparation",
@@ -516,7 +516,7 @@ class MLEngineerAgent(BaseAgent):
 
 
 class SWEngineerAgent(BaseAgent):
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "data preparation",
@@ -572,7 +572,7 @@ class SWEngineerAgent(BaseAgent):
 
 
 class PhDStudentAgent(BaseAgent):
-    def __init__(self, platform, model_or_pipe, show_r1_thought=False, notes=None, max_steps=100):
+    def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
         super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "literature review",
