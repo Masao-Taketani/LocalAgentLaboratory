@@ -116,7 +116,7 @@ class Edit(Command):
         # args[1] -> M (int)
         # args[2] -> old code
         # args[3] -> new lines to replace
-        # args[4] -> new lines to replace
+        # args[4] -> code to obtain a dataset
         try:
             args = args[0]
             current_code = args[2]
@@ -139,6 +139,12 @@ class Edit(Command):
         return False
 
     def parse_command(self, *args) -> tuple:
+        """
+        model_resp, copy(self.code_lines), self.dataset_code
+        args[0]: A response from LLM
+        args[1]: randomly picked one of sets of current successful code
+        args[2]: Code to obtain a dataset
+        """
         cmd_str, codelines, datasetcode = args[0], args[1], args[2]
         success = True
         try:
@@ -195,7 +201,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
             temp=0.8,
-            )
+            show_r1_thought=show_r1_thought)
         return extract_prompt(model_resp, "python")
     elif ctype == "edit":
         repair_sys = (
@@ -212,10 +218,12 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             "Your output should look like the following\n\n```EDIT N M\n<new lines to replace old lines>\n```"
         )
         model_resp = query_model(
-            openai_api_key=openai_api_key,
-            model_str=f"{REPAIR_LLM}",
+            platform=platform, 
+            model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
-            prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", temp=0.2)
+            prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
+            temp=0.2,
+            show_r1_thought=show_r1_thought)
         return model_resp
 
 
@@ -302,10 +310,11 @@ class MLESolver:
             if len(self.commands) == 2: cmd_app_str = "You must output either the ```EDIT or ```REPLACE command immediately. "
             else: cmd_app_str = ""
             model_resp = query_model(
-                openai_api_key=self.openai_api_key,
-                model_str=self.model,
+                platform=self.platform, 
+                model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
-                prompt=f"The following is your history:{self.history_str()}\n\n{cmd_app_str}Now please enter a command: ", temp=1.0)
+                prompt=f"The following is your history:{self.history_str()}\n\n{cmd_app_str}Now please enter a command: ", 
+                temp=1.0)
             model_resp = self.clean_text(model_resp)
             self.code_lines = copy(random.choice(self.best_codes)[0])
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)
@@ -368,18 +377,22 @@ class MLESolver:
                         failed = True
                         code_err = str()
                         for _tries in range(GLOBAL_REPAIR_ATTEMPTS):
+                            # the following success means wether the LLM responded with a proper command or not
                             success, args = cmd.parse_command(model_resp, copy(self.code_lines), self.dataset_code)
                             if success:
                                 cmd_return = cmd.execute_command(args)
+                                # cmd_return[0]: Wether the edited code is successfully executed
+                                # cmd_return[1]: The edited code
+                                # cmd_return[2]: Result after executing the code 
                                 code_err = f"Return from executing code: {cmd_return[2]}"
                                 if cmd_return[0]:  # if success
                                     code_lines = copy(cmd_return[1])
-                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], openai_api_key=self.openai_api_key, REWARD_MODEL_LLM=self.llm_str)
+                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], , self.platform, self.model_or_pipe, self.show_r1_thought)
                                     if is_valid:
                                         failed = False
                                         break
                                     code_err += f"\nReturn from executing code on real test set {cmd_str}"
-                            repaired_code = code_repair(model_resp, code_err, REPAIR_LLM=self.llm_str, ctype="edit", openai_api_key=self.openai_api_key)
+                            repaired_code = code_repair(model_resp, code_err, ctype="edit", platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
                             model_resp = repaired_code
                             print(f"     * Attempting repair // try {_tries}*")
                         if failed:
@@ -560,7 +573,7 @@ class MLESolver:
             "Make sure to import everything that you are using.\n"
             "Reflect on the code before writing it to make sure there are no bugs or compilation issues.\n"
             "YOU MUST USE COMMANDS PROPERLY. Do not use the word COMMAND for the command that is incorrect. You must use an actual command (e.g. EDIT, REPLACE...) NOT THE WORD COMMAND. Do not make this mistake.\n"
-            "Under no circumstances should you use tensorflow or keras. Only use pytorch for scikitlearn for deep learning.\n"
+            "Under no circumstances should you use tensorflow or keras. Only use pytorch or scikitlearn for deep learning.\n"
         )
 
     def command_descriptions(self):
@@ -569,7 +582,7 @@ class MLESolver:
         @return: (str) command descriptions
         """
         cmd_strings = "\n".join([_cmd.docstring() for _cmd in self.commands])
-        return f"\nYou also have access to tools which can be interacted with using the following structure: ```COMMAND\n<command information here>\n```, where COMMAND is whichever command you want to run (e.g. EDIT, REPLACE...), <command information here> is information used for the command, such as code to run or a search query, and ``` are meant to encapsulate the command. ``` must be included as part of the command both at the beginning and at the end of the code. DO NOT FORGOT TO HAVE ``` AT THE TOP AND BOTTOM OF CODE. and this structure must be followed to execute a command correctly. YOU CAN ONLY EXECUTE A SINGLE COMMAND AT A TIME! Do not try to perform multiple commands EVER only one. {self._common_code_errors()}" + cmd_strings
+        return f"\nYou also have access to tools which can be interacted with using the following structure: ```COMMAND\n<command information here>\n```, where COMMAND is whichever command you want to run (e.g. EDIT, REPLACE...), <command information here> is information used for the command, such as code to run or a search query, and ``` are meant to encapsulate the command. ``` must be included as part of the command both at the beginning and at the end of the code. DO NOT FORGET TO HAVE ``` AT THE TOP AND BOTTOM OF CODE. and this structure must be followed to execute a command correctly. YOU CAN ONLY EXECUTE A SINGLE COMMAND AT A TIME! Do not try to perform multiple commands EVER only one. {self._common_code_errors()}" + cmd_strings
 
     def run_code(self):
         """
