@@ -8,7 +8,7 @@ from abc import abstractmethod
 from tools import execute_code
 from inference import query_model
 from pathlib import Path
-from utils import remove_figures
+from utils import remove_figures, extract_prompt
 
 
 from contextlib import contextmanager
@@ -180,7 +180,7 @@ def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_r1
     return 0, e
 
 
-def code_repair(code, error, ctype, REPAIR_LLM, openai_api_key=None):
+def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
     if ctype == "replace":
         repair_sys = (
             "You are an automated code repair tool.\n"
@@ -190,10 +190,12 @@ def code_repair(code, error, ctype, REPAIR_LLM, openai_api_key=None):
             "Do not forget the opening ```python and the closing ```."
         )
         model_resp = query_model(
-            openai_api_key=openai_api_key,
-            model_str=f"{REPAIR_LLM}",
+            platform=platform, 
+            model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
-            prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", temp=0.8)
+            prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
+            temp=0.8,
+            )
         return extract_prompt(model_resp, "python")
     elif ctype == "edit":
         repair_sys = (
@@ -249,12 +251,10 @@ class MLESolver:
         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         self.best_score = None
         self.commands = [Replace()]
-        self.model = f"{self.llm_str}"
         init_code, init_return, self.best_score = self.gen_initial_code()
         self.best_codes = [(copy(init_code), self.best_score, init_return) for _ in range(1)]
 
         self.code_lines = init_code
-        self.model = f"{self.llm_str}"
         self.commands = [Edit(), Replace()]
         self.prev_working_code = copy(self.code_lines)
 
@@ -403,12 +403,12 @@ class MLESolver:
                                 # args[0]: code lines
                                 # args[1]: code execution return
                                 code_lines = copy(args[0])
-                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_r1_though)
+                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_r1_thought)
                                 if is_valid:
                                     failed = False
                                     break
                                 code_err += f"\nReturn from executing code on real test set {cmd_str}"
-                            repaired_code = code_repair(extract_prompt(model_resp, "REPLACE", ), code_err, ctype="replace", openai_api_key=self.openai_api_key, REPAIR_LLM=self.llm_str)
+                            repaired_code = code_repair(extract_prompt(model_resp, "REPLACE", ), code_err, ctype="replace", platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
                             repaired_code = f"```REPLACE\n{repaired_code}\n```"
                             model_resp = repaired_code
                             print(f"     * Attempting repair // try {_tries}*")
