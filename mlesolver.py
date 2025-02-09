@@ -5,9 +5,10 @@ from common_imports import *
 from abc import abstractmethod
 
 
-from tools import *
+from tools import execute_code
 from inference import query_model
 from pathlib import Path
+from utils import remove_figures
 
 
 from contextlib import contextmanager
@@ -85,6 +86,10 @@ class Replace(Command):
         return False
 
     def parse_command(self, *args) -> tuple:
+        """
+        args[0]: A response from LLM
+        args[1]: Code to obtain a dataset
+        """
         new_code = extract_prompt(args[0], "REPLACE")
         code_exec = f"{args[1]}\n{new_code}"
         code_ret = execute_code(code_exec)
@@ -148,23 +153,25 @@ class Edit(Command):
             return False, (None, None, None, None, None)
 
 
-def get_score(outlined_plan, code, code_return, REWARD_MODEL_LLM, attempts=3, openai_api_key=None):
+def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_r1_thought, attempts=3):
     e = str()
     for _attempt in range(attempts):
         try:
             # todo: have a reward function here
             sys = (
-                f"You are a professor agent who is serving as an expert reward model that can read a research plan, research code, and code output and are able to determine how well a model followed the plan, built the code, and got the proper output scored from 0 to 1 as a float.\n\n"
-                f"You must structure your score exactly in the following way: ```SCORE\n<score here>\n``` where SCORE is just the word score, <score here> is a floating point number between 0 and 1 representing how well the model followed the plan, built the code, and got the proper output."
+                f"You are a professor agent who is serving as an expert reward model that can read a research plan, research code, and code output and are able to determine how well a machine learning engineer followed the plan, built the code, and got the proper output scored from 0 to 1 as a float.\n\n"
+                f"You must structure your score exactly in the following way: ```SCORE\n<score here>\n``` where SCORE is just the word score, <score here> is a floating point number between 0 and 1 representing how well the machine learning engineer followed the plan, built the code, and got the proper output."
             )
             scoring = query_model(
-                model_str=f"{REWARD_MODEL_LLM}",
+                platform=platform, 
+                model_or_pipe=model_or_pipe,
                 system_prompt=sys,
-                openai_api_key=openai_api_key,
                 prompt=(
                     f"Outlined in the following text is the research plan that the machine learning engineer was tasked with building: {outlined_plan}\n\n"
-                    f"The following text is the research code that the model produced: \n{code}\n\n"
-                    f"The following is the output from the model: {code_return}\n\n"), temp=0.6)
+                    f"The following text is the research code that the machine learning engineer produced: \n{code}\n\n"
+                    f"The following is the output from the code: {code_return}\n\n"), 
+                temp=0.6,
+                show_r1_thought=show_r1_thought)
             performance = extract_prompt(text=scoring, word="SCORE")
             performance = float(performance)
             return performance, f"The performance of your submission is: {performance}", True
@@ -393,8 +400,10 @@ class MLESolver:
                             success, args = cmd.parse_command(model_resp, self.dataset_code)
                             code_err = f"Return from executing code: {args[1]}"
                             if success:
+                                # args[0]: code lines
+                                # args[1]: code execution return
                                 code_lines = copy(args[0])
-                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], openai_api_key=self.openai_api_key, REWARD_MODEL_LLM=self.llm_str)
+                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_r1_though)
                                 if is_valid:
                                     failed = False
                                     break
