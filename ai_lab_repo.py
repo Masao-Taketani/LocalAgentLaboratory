@@ -359,7 +359,7 @@ class LaboratoryWorkflow:
         exp_results = solver.best_codes[0][2]
         if self.verbose: print(f"Running experiments completed, reward function score: {score}")
         if self.human_in_loop_flag["running experiments"]:
-            retry = self.human_in_loop("data preparation", code)
+            retry = self.human_in_loop("running experiments", code)
             if retry: return retry
         save_to_file("./research_dir/src", "run_experiments.py", code)
         self.set_agent_attr("results_code", code)
