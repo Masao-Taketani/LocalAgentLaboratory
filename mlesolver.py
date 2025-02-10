@@ -314,7 +314,8 @@ class MLESolver:
                 model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
                 prompt=f"The following is your history:{self.history_str()}\n\n{cmd_app_str}Now please enter a command: ", 
-                temp=1.0)
+                temp=1.0,
+                show_r1_thought=self.show_r1_thought)
             model_resp = self.clean_text(model_resp)
             self.code_lines = copy(random.choice(self.best_codes)[0])
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)
@@ -351,8 +352,11 @@ class MLESolver:
         code_strs = ("$"*40 + "\n\n").join([self.generate_code_lines(_code[0]) + f"\nCode Return {_code[1]}" for _code in self.best_codes])
         code_strs = f"Please reflect on the following sets of code: {code_strs} and come up with generalizable insights that will help you improve your performance on this benchmark."
         syst = self.system_prompt(commands=False) + code_strs
-        return query_model(prompt="Please reflect on ideas for how to improve your current code. Examine the provided code and think very specifically (with precise ideas) on how to improve performance, which methods to use, how to improve generalization on the test set with line-by-line examples below:\n", system_prompt=syst, model_str=f"{self.llm_str}", openai_api_key=self.openai_api_key)
-
+        return query_model(prompt="Please reflect on ideas for how to improve your current code. Examine the provided code and think very specifically (with precise ideas) on how to improve performance, which methods to use, how to improve generalization on the test set with line-by-line examples below:\n", 
+                           system_prompt=syst, 
+                           platform=self.platform, 
+                           model_or_pipe=self.model_or_pipe, 
+                           show_r1_thought=self.show_r1_thought)
     def process_command(self, model_resp):
         """
         Take command from language model and execute if valid
