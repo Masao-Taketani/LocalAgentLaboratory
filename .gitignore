@@ -5,7 +5,7 @@ state*
 junk/*
 huggingface_*
 junk/logs
-papers*
+#papers*
 hf*
 junk/data/*
 research_dir/*
