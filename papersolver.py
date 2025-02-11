@@ -1,9 +1,9 @@
 import random
 import string
-from utils import *
-from tools import *
+from utils import compile_latex
+from tools import ArxivSearch
 from copy import copy
-from inference import *
+from inference import query_model
 from pathlib import Path
 from copy import deepcopy
 from common_imports import *
@@ -121,6 +121,10 @@ class PaperReplace(Command):
         return False
 
     def parse_command(self, *args) -> tuple:
+        """
+        args[0]: A LLM response
+        args[1]: Whether to compile a PDF or not
+        """
         new_latex = extract_prompt(args[0], "REPLACE")
         latex_ret = compile_latex(new_latex, compile=args[1])
         if "[CODE EXECUTION ERROR]" in latex_ret: return False, (None, latex_ret,)
@@ -243,7 +247,7 @@ Please make sure the abstract reads smoothly and is well-motivated. This should 
 }
 
 class PaperSolver:
-    def __init__(self, llm_str, notes=None, max_steps=10, insights=None, plan=None, exp_code=None, exp_results=None, lit_review=None, ref_papers=None, topic=None, openai_api_key=None, compile_pdf=True):
+    def __init__(self, platform, model_or_pipe, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None, exp_code=None, exp_results=None, lit_review=None, ref_papers=None, topic=None, compile_pdf=True):
         if notes is None: self.notes = []
         else: self.notes = notes
         if plan is None: self.plan = ""
@@ -261,7 +265,6 @@ class PaperSolver:
         if topic is None: self.topic = ""
         else: self.topic = topic
         self.compile_pdf = compile_pdf
-        self.llm_str = llm_str
         self.notes = notes
         self.max_papers = 1
         self.st_hist_len = 10
@@ -270,7 +273,9 @@ class PaperSolver:
         self.paper_lines = str()
         self.prev_paper_ret = str()
         self.section_related_work = {}
-        self.openai_api_key = openai_api_key
+        self.platform = platform
+        self.model_or_pipe = model_or_pipe
+        self.show_r1_thought = show_r1_thought
 
     def solve(self):
         num_attempts = 0
@@ -320,12 +325,10 @@ class PaperSolver:
         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         self.best_score = None
         self.commands = [PaperReplace()]
-        self.model = f"{self.llm_str}"
         init_report, init_return, self.best_score = self.gen_initial_report()
         self.best_report = [(copy(init_report), self.best_score, init_return) for _ in range(1)]
 
         self.paper_lines = init_report
-        self.model = f"{self.llm_str}"
         self.commands = [PaperEdit()] #, Replace()]
         self.prev_working_report = copy(self.paper_lines)
 
@@ -351,7 +354,11 @@ class PaperSolver:
                         break
                     if not first_attempt:
                         att_str = "This is not your first attempt please try to come up with a simpler search query."
-                    search_query = query_model(model_str=f"{self.llm_str}", prompt=f"Given the following research topic {self.topic} and research plan: \n\n{self.plan}\n\nPlease come up with a search query to find relevant papers on arXiv. Respond only with the search query and nothing else. This should be a a string that will be used to find papers with semantically similar content. {att_str}", system_prompt=f"You are a research paper finder. You must find papers for the section {_section}. Query must be text nothing else.", openai_api_key=self.openai_api_key)
+                    search_query = query_model(platform=self.platform, 
+                                               model_or_pipe=self.model_or_pipe,
+                                               prompt=f"Given the following research topic {self.topic} and research plan: \n\n{self.plan}\n\nPlease come up with a search query to find relevant papers on arXiv. Respond only with the search query and nothing else. This should be a string that will be used to find papers with semantically similar content. {att_str}", 
+                                               system_prompt=f"You are a research paper finder. You must find papers for the section {_section}. Query must be text. Nothing else.", 
+                                               show_r1_thought=self.show_r1_thought)
                     search_query.replace('"', '')
                     papers = arx.find_papers_by_str(query=search_query, N=10)
                     first_attempt = False
@@ -368,13 +375,14 @@ class PaperSolver:
                     rp = str()
                     if _section in self.section_related_work:
                         rp = f"Here are related papers you can cite: {self.section_related_work[_section]}. You can cite them just by putting the arxiv ID in parentheses, e.g. (arXiv 2308.11483v1)\n"
-                    prompt = f"{err}\n{rp}\nNow please enter the ```REPLACE command to create the designated section, make sure to only write the text for that section and nothing else. Do not include packages or section titles, just the section content:\n "
+                    prompt = f"{err}\n{rp}\nNow please enter the ```REPLACE command to create the designated section, and make sure to only write the text for that section and nothing else. Do not include packages or section titles, just the section content:\n "
                 model_resp = query_model(
-                    model_str=self.model,
+                    platform=self.platform, 
+                    model_or_pipe=self.model_or_pipe,
                     system_prompt=self.system_prompt(section=_section),
                     prompt=f"{prompt}",
                     temp=0.8,
-                    openai_api_key=self.openai_api_key)
+                    show_r1_thought=self.show_r1_thought)
                 model_resp = self.clean_text(model_resp)
                 if _section == "scaffold":
                     # minimal scaffold (some other sections can be combined)
@@ -388,7 +396,7 @@ class PaperSolver:
                     section_scaffold_temp = section_scaffold_temp.replace(f"[{_section.upper()} HERE]", new_text)
                     model_resp = '```REPLACE\n' + copy(section_scaffold_temp) + '\n```'
                     if "documentclass{article}" in new_text or "usepackage{" in new_text:
-                            cmd_str = "Error: You must not include packages or documentclass in the text! Your latex must only include the section text, equations, and tables."
+                            cmd_str = "Error: You MUST NOT include packages or documentclass in the text! Your latex MUST only include the section text, equations, and tables."
                             print("@@@ INIT ATTEMPT:", cmd_str)
                             continue
                 cmd_str, latex_lines, prev_latex_ret, score = self.process_command(model_resp, scoring=False)
@@ -459,7 +467,11 @@ class PaperSolver:
                     if success:
                         paper_lines = copy(args[0]) #
                         if scoring:
-                            score, cmd_str, is_valid = get_score(self.plan, "\n".join(paper_lines), reward_model_llm=self.llm_str)
+                            score, cmd_str, is_valid = get_score(self.plan, 
+                                                                 "\n".join(paper_lines), 
+                                                                 platform=self.platform, 
+                                                                 model_or_pipe=self.model_or_pipe, 
+                                                                 show_r1_thought=self.show_r1_thought)
                         else:
                             score, cmd_str, is_valid = 0.0, "Paper scored successfully", True
                         if is_valid: failed = False
