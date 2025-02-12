@@ -1,6 +1,6 @@
 import random
 import string
-from utils import compile_latex
+from utils import compile_latex, extract_prompt
 from tools import ArxivSearch
 from copy import copy
 from inference import query_model
@@ -150,6 +150,7 @@ class PaperEdit(Command):
         # args[1] -> M (int)
         # args[2] -> old latex
         # args[3] -> new lines to replace
+        # args[4] -> Whether to compile a PDF or not
         try:
             args = args[0]
             current_latex = args[2]
@@ -172,6 +173,10 @@ class PaperEdit(Command):
         return False
 
     def parse_command(self, *args) -> tuple:
+        """
+        args[0]: A LLM response
+        args[1]: paper lines
+        """
         cmd_str, latexlines = args[0], args[1]
         success = True
         try:
@@ -285,11 +290,12 @@ class PaperSolver:
         while True:
             self.paper_lines = copy(random.choice(self.best_report)[0])
             model_resp = query_model(
-                model_str=self.model,
+                platform=self.platform, 
+                model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
                 prompt=f"\nNow please enter a command: ",
                 temp=1.0,
-                openai_api_key=self.openai_api_key)
+                show_r1_thought=self.show_r1_thought)
             #print(model_resp)
             model_resp = self.clean_text(model_resp)
             cmd_str, paper_lines, prev_paper_ret, score = self.process_command(model_resp)
@@ -436,16 +442,31 @@ class PaperSolver:
                     score = None
                     failed = True
                     success, args = cmd.parse_command(model_resp, paper_lines)
+                    """
+                    args[0]: beginning line to edit, 
+                    args[1]: end line to edit
+                    args[2]: paper lines
+                    args[3]: model response without a command line
+                    """
                     paper_err = f"Return from executing latex: {args[1]}"
                     if success:
                         # True, current_latex, latex_ret
                         args = cmd.execute_command((args[0], args[1], paper_lines, args[3], self.compile_pdf))
+                        """
+                        args[0]: whether latex is compiled successfully or not 
+                        args[1]: updated LaTeX
+                        args[2]: return message after compiling the LaTeX
+                        """
                         success = success and args[0]
                         if not success: pass
                         else:
                             paper_lines = copy(args[1]) #
                             if scoring:
-                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(paper_lines), reward_model_llm=self.llm_str)
+                                score, cmd_str, is_valid = get_score(self.plan, 
+                                                                     "\n".join(paper_lines), 
+                                                                     platform=self.platform, 
+                                                                     model_or_pipe=self.model_or_pipe, 
+                                                                     show_r1_thought=self.show_r1_thought)
                             else:
                                 score, cmd_str, is_valid = 0.0, "Paper scored successfully", True
                             if is_valid: failed = False
@@ -525,9 +546,11 @@ class PaperSolver:
                 methods_str += f"You ABSOLUTELY must without fail also include Figure_1.png in your paper using {fig1_text} on a new line.\n"
             elif os.path.exists("Figure_2.png"):
                 methods_str += f"You ABSOLUTELY must without fail also include Figure_2.png in your paper using {fig2_text} on a new line.\n"
-        if section is not None and section == "scaffold": section_cmd = f"Your objective right now is to only build the scaffolding for the paper. You should not include any text in the body of the paper, but should have an empty scaffold for each of the sections. Where the sections go, write [ABSTRACT HERE] for abstract, and write [INTRODUCTION HERE] for the introduction... etc. Your paper should have the following sections: 1. Abstract 2. Introduction, 3. Background, 4. Related Work 5. Methods, 6. Experimental Setup 7. Results, and 8. Discussion. Just create the scaffolding as compilable latex. Your title should start with Research Report: [title here] where title here is a title you choose. For author write Agent Laboratory."
-        elif section is not None: section_cmd = f"Your only goal is to generate latex for the following {section}. DO NOT INCLUDE ANY PACKAGES OR ANY SECTION COMMANDS. DO NOT INCLUDE A TITLE OR DATE ONLY TEXT. You only have to generate text for this specific section and do not have to output anything else. {length} I repeat DO NOT INCLUDE ANY PACKAGES OR ANY SECTION COMMANDS. DO NOT INCLUDE A TITLE OR DATE ONLY TEXT. Use as many equations as you find necessary. You should include mathematical equations, numbers, and tables where necessary. Remember that to include a percentage sign % you must add a backslash \% or else it will become a comment. Here are some tips {per_section_tips[section]}  {methods_str}.\n\n"
+        if section is not None and section == "scaffold": section_cmd = f"Your objective right now is to only build the scaffolding for the paper. You should not include any text in the body of the paper, but should have an empty scaffold for each of the sections. Where the sections go, write [ABSTRACT HERE] for abstract, and write [INTRODUCTION HERE] for the introduction... etc. Your paper should have the following sections: 1. Abstract 2. Introduction, 3. Background, 4. Related Work 5. Methods, 6. Experimental Setup 7. Results, and 8. Discussion. Just create the scaffolding as compilable latex. Your title should start with Research Report: [title here] where title here is a title you choose. For author, write Agent Laboratory."
+        elif section is not None: section_cmd = f"Your only goal is to generate latex for the following {section}. DO NOT INCLUDE ANY PACKAGES OR ANY SECTION COMMANDS. DO NOT INCLUDE A TITLE OR DATE ONLY TEXT. You only have to generate text for this specific section and do not have to output anything else. {length} I repeat DO NOT INCLUDE ANY PACKAGES OR ANY SECTION COMMANDS. DO NOT INCLUDE A TITLE OR DATE ONLY TEXT. Use as many equations as you find necessary. You should include mathematical equations, numbers, and tables where necessary. Remember that to include a percentage sign %, you must add a backslash like \%, or else it will become a comment. Here are some tips {per_section_tips[section]}  {methods_str}.\n\n"
         else: section_cmd = ""
+        # string.punctuation is a string constant containing the following characters: !”#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        # The isalpha() method returns True if all the characters are alphabet letters (a-z).
         paper_len = sum([i.strip(string.punctuation).isalpha() for i in ("".join(self.paper_lines)).split()])
         #paper_len2 = len(("".join(self.paper_lines)).split())
         if paper_len < 4000: paper_progress = f"The current length of the paper is {paper_len} words, you must increase this by {4000-paper_len} words."
