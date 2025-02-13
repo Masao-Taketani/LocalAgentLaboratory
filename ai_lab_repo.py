@@ -286,7 +286,7 @@ class LaboratoryWorkflow:
             if retry: return retry
         self.set_agent_attr("report", report)
         readme = self.professor.generate_readme()
-        save_to_file("./research_dir", "readme.md", readme)
+        save_to_file("./research_dir", "README.md", readme)
         save_to_file("./research_dir", "report.txt", report)
         self.reset_agents()
         return False

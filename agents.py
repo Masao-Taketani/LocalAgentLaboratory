@@ -313,11 +313,11 @@ class ProfessorAgent(BaseAgent):
         self.phases = ["report writing"]
 
     def generate_readme(self):
-        sys_prompt = f"""You are {self.role_description()} \n Here is the written paper \n{self.report}. Task instructions: Your goal is to integrate all of the knowledge, code, reports, and notes provided to you and generate a readme.md for a github repository."""
+        sys_prompt = f"""You are {self.role_description()} \n Here is the written paper \n{self.report}. Task instructions: Your goal is to integrate all of the knowledge, code, reports, and notes provided to you and generate a README.md for a github repository."""
         history_str = "\n".join([_[1] for _ in self.history])
         prompt = (
             f"""History: {history_str}\n{'~' * 10}\n"""
-            f"Please produce the readme below in markdown:\n")
+            f"Please produce the README below in markdown:\n")
         model_resp = query_model(platform=self.platform, model_or_pipe=self.model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_r1_thought=self.show_r1_thought)
         return model_resp.replace("```markdown", "")
 
