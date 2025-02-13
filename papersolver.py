@@ -6,7 +6,6 @@ from copy import copy
 from inference import query_model
 from pathlib import Path
 from copy import deepcopy
-from common_imports import *
 from agents import get_score
 from abc import abstractmethod
 

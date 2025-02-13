@@ -1,12 +1,13 @@
 from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe
 from utils import extract_prompt, save_to_file
-from copy import copy
 from mlesolver import MLESolver
-from torch.backends.mkl import verbose
 from tools import ArxivSearch, HFDataSearch, execute_code
 
+from copy import copy
+from torch.backends.mkl import verbose
 import argparse
 import pickle
+import time
 
 DEFAULT_PLATFORM = "ollama"
 DEFAULT_LLM_BACKBONE = "qwen2.5:72b-instruct-q4_K_S"
@@ -231,7 +232,7 @@ class LaboratoryWorkflow:
         print("Reviews:", reviews)
         if self.human_in_loop_flag["report refinement"]:
             print(f"Provided are reviews from a set of three reviewers: {reviews}")
-            input("Would you like to be completed with the project or should the agents go back and improve their experimental results?\n (y) for go back (n) for complete project: ")
+            input("Would you like to be completed with the project or should the agents go back and improve their experimental results?\n (y) to go back (n) to complete project: ")
         else:
             review_prompt = f"Provided are reviews from a set of three reviewers: {reviews}. Would you like to be completed with the project or do you want to go back to the planning phase and improve your experiments?\n Type y and nothing else to go back, type n and nothing else for complete project."
             self.phd.phases.append("report refinement")

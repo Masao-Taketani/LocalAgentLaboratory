@@ -1,5 +1,4 @@
 from utils import extract_prompt
-from tools import *
 from inference import query_model
 
 
