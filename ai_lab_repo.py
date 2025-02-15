@@ -90,7 +90,8 @@ class LaboratoryWorkflow:
             "report refinement":      {"time": 0.0, "steps": 0.0,},
         }
 
-        self.save = True
+        #self.save = True
+        self.save = False
         self.verbose = True
         # Following instantiations are not used
         self.reviewers = ReviewersAgent(platform=self.platform, notes=self.notes)
@@ -677,6 +678,7 @@ if __name__ == "__main__":
     human_mode = args.copilot_mode.lower() == "true"
     compile_pdf = args.compile_latex.lower() == "true"
     load_existing = args.load_existing.lower() == "true"
+    show_r1_thought = args.show_r1_thought.lower() == "true"
     try:
         num_papers_lit_review = int(args.num_papers_lit_review.lower())
     except Exception:
@@ -766,7 +768,7 @@ if __name__ == "__main__":
 
     show_r1_thoughts = {}
     for k, v in agent_models.items():
-        show_r1_thoughts[k] = True if 'deepseek-r1' in v.lower() and args.show_r1_thought else False
+        show_r1_thoughts[k] = True if 'deepseek-r1' in v.lower() and show_r1_thought else False
 
     if load_existing:
         load_path = args.load_existing_path
