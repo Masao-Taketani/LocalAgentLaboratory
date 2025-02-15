@@ -2,6 +2,12 @@ from utils import extract_prompt
 from inference import query_model
 
 
+AVAILABLE_PLATFORMS = [
+    "huggingface",
+    "ollama"
+]
+
+
 def init_hf_pipe(model):
     from transformers import pipeline
     import torch
@@ -198,7 +204,7 @@ class ReviewersAgent:
     def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None):
         if notes is None: self.notes = []
         else: self.notes = notes
-        self.platform = self.platform
+        self.platform = platform
         self.model_or_pipe = model_or_pipe
 
     def inference(self, plan, report):
@@ -374,7 +380,7 @@ class ProfessorAgent(BaseAgent):
 
 class PostdocAgent(BaseAgent):
     def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
-        super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
+        super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = ["plan formulation", "results interpretation"]
 
     def context(self, phase):
@@ -516,7 +522,7 @@ class MLEngineerAgent(BaseAgent):
 
 class SWEngineerAgent(BaseAgent):
     def __init__(self, platform, model_or_pipe=None, show_r1_thought=False, notes=None, max_steps=100):
-        super().__init__(mplatform, model_or_pipe, show_r1_thought, notes, max_steps)
+        super().__init__(platform, model_or_pipe, show_r1_thought, notes, max_steps)
         self.phases = [
             "data preparation",
         ]

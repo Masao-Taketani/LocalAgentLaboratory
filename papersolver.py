@@ -1,16 +1,16 @@
 import random
 import string
-from utils import compile_latex, extract_prompt
-from tools import ArxivSearch
 from copy import copy
-from inference import query_model
 from pathlib import Path
 from copy import deepcopy
-from agents import get_score
 from abc import abstractmethod
-
 from contextlib import contextmanager
 import sys, os
+
+from utils import compile_latex, extract_prompt
+from tools import ArxivSearch
+from inference import query_model
+from agents import get_score
 
 @contextmanager
 def suppress_stdout():

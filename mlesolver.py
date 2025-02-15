@@ -2,16 +2,16 @@ import random
 from copy import copy
 from copy import deepcopy
 from abc import abstractmethod
-
+from contextlib import contextmanager
+import sys, os
+import logging
+import warnings
 
 from tools import execute_code
 from inference import query_model
 from pathlib import Path
 from utils import remove_figures, extract_prompt
 
-
-from contextlib import contextmanager
-import sys, os
 
 @contextmanager
 def suppress_stdout():
@@ -28,7 +28,6 @@ os.environ["JOBLIB_VERBOSITY"] = "0"
 logging.basicConfig(level=logging.WARNING)
 warnings.filterwarnings("ignore")
 warnings.simplefilter(action='ignore', category=FutureWarning)
-import logging
 logging.getLogger('sklearn.model_selection').setLevel(logging.WARNING)
 
 
@@ -390,7 +389,7 @@ class MLESolver:
                                 code_err = f"Return from executing code: {cmd_return[2]}"
                                 if cmd_return[0]:  # if success
                                     code_lines = copy(cmd_return[1])
-                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], , self.platform, self.model_or_pipe, self.show_r1_thought)
+                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], self.platform, self.model_or_pipe, self.show_r1_thought)
                                     if is_valid:
                                         failed = False
                                         break

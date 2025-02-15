@@ -5,31 +5,21 @@ from transformers import set_seed
 from transformers.pipelines.text_generation import TextGenerationPipeline
 
 
-def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False):
+def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, max_length=131072):
     for _ in range(tries):
         if temp is None: temp = 1.0
         try:
-            if model_str == "gpt-4o-mini" or model_str == "gpt4omini" or model_str == "gpt-4omini" or model_str == "gpt4o-mini":
-                model_str = "gpt-4o-mini"
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}]
-
-                    client = OpenAI()
-                    completion = client.chat.completions.create(
-                        model="gpt-4o-mini-2024-07-18", messages=messages, temperature=temp)
-                answer = completion.choices[0].message.content
-
             if platform == "ollama":
                 messages = [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}]
+                    {"role": "user", "content": prompt}
+                ]
 
-                    client = OpenAI(base_url='http://localhost:11434/v1/',
-                                    api_key='ollama', # required but ignored
-                                    )
-                    completion = client.chat.completions.create(
-                        model=model_or_pipe, messages=messages, temperature=temp)
+                client = OpenAI(base_url='http://localhost:11434/v1/',
+                                api_key='ollama', # required but ignored
+                                )
+                completion = client.chat.completions.create(
+                    model=model_or_pipe, messages=messages, temperature=temp)
                 answer = completion.choices[0].message.content
 
             elif platform == "huggingface":
@@ -46,9 +36,10 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                 response = model_or_pipe(prompt,
                                          do_sample=True,
                                          temperature=temp,
+                                         max_length=max_length,
+                                         truncation=True
                 )
                 answer = response[0]["generated_text"][len(prompt):]
-                    
             else:
                 raise ValueError(f"Platform {platform} is not supported.")
 

@@ -1,20 +1,22 @@
-from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe
-from utils import extract_prompt, save_to_file
-from mlesolver import MLESolver
-from tools import ArxivSearch, HFDataSearch, execute_code
-
 from copy import copy
 from torch.backends.mkl import verbose
 import argparse
 import pickle
 import time
+import os
+
+from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe, AVAILABLE_PLATFORMS
+from utils import extract_prompt, save_to_file, remove_figures, remove_directory
+from mlesolver import MLESolver
+from tools import ArxivSearch, HFDataSearch, execute_code
+
 
 DEFAULT_PLATFORM = "ollama"
 DEFAULT_LLM_BACKBONE = "qwen2.5:72b-instruct-q4_K_S"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, max_steps=100, num_papers_lit_review=5, platform, show_r1_thoughts, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
+    def __init__(self, research_topic, platform, show_r1_thoughts, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
                  notes=list(), human_in_loop_flag=None, compile_pdf=True, mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
@@ -34,7 +36,7 @@ class LaboratoryWorkflow:
         self.platform = platform
         if self.platform == "huggingface":
             self.pipe = init_hf_pipe(agent_model_backbone["literature review"])
-        self.c = show_r1_thoughts
+        self.show_r1_thoughts = show_r1_thoughts
 
         self.print_cost = True
         self.review_override = True # should review be overridden?
@@ -759,11 +761,11 @@ if __name__ == "__main__":
         "running experiments":    llm_backend,
         "report writing":         llm_backend,
         "results interpretation": llm_backend,
-        "paper refinement":       llm_backend,
+        "report refinement":       llm_backend,
     }
 
     show_r1_thoughts = {}
-    for k, v in agent_models:
+    for k, v in agent_models.items():
         show_r1_thoughts[k] = True if 'deepseek-r1' in v.lower() and args.show_r1_thought else False
 
     if load_existing:
