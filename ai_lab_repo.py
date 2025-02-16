@@ -1,9 +1,11 @@
 from copy import copy
+import torch
 from torch.backends.mkl import verbose
 import argparse
 import pickle
 import time
 import os
+import gc
 
 from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe, AVAILABLE_PLATFORMS
 from utils import extract_prompt, save_to_file, remove_figures, remove_directory
@@ -227,7 +229,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["report refinement"] != self.phase_models["report writing"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -265,7 +269,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["results interpretation"] != self.phase_models["report writing"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["report writing"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -301,7 +307,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["results interpretation"] != self.phase_models["running experiments"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["results interpretation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -341,7 +349,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["data preparation"] != self.phase_models["running experiments"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["running experiments"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -378,7 +388,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["data preparation"] != self.phase_models["plan formulation"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["data preparation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -453,7 +465,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface" and self.phase_models["literature review"] != self.phase_models["plan formulation"]:
-            self.pipe.dispose()
+            del self.pipe
+            gc.collect()
+            torch.cuda.empty_cache()
             self.pipe = init_hf_pipe(self.phase_models["plan formulation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
