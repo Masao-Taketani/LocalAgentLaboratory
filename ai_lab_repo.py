@@ -627,8 +627,15 @@ def parse_arguments():
     parser.add_argument(
         '--llm-backend',
         type=str,
-        default="qwen2.5:72b-instruct-q4_K_S",
+        default="qwen2.5:72b-instruct-q4_K_M",
         help="Specify a name of your model from available platforms for the backend LLM to use for agents in Agent Laboratory."
+    )
+
+    parser.add_argument(
+        '--coding-llm-backend',
+        type=str,
+        default=None,
+        help="Specify a name of your coding model from available platforms for the backend LLM to use for coding agents in Agent Laboratory."
     )
 
     parser.add_argument(
@@ -675,6 +682,7 @@ if __name__ == "__main__":
 
     platform = args.platform
     llm_backend = args.llm_backend
+    coding_llm_backend = args.coding_llm_backend if args.coding_llm_backend else llm_backend
     human_mode = args.copilot_mode.lower() == "true"
     compile_pdf = args.compile_latex.lower() == "true"
     load_existing = args.load_existing.lower() == "true"
@@ -759,8 +767,8 @@ if __name__ == "__main__":
     agent_models = {
         "literature review":      llm_backend,
         "plan formulation":       llm_backend,
-        "data preparation":       llm_backend,
-        "running experiments":    llm_backend,
+        "data preparation":       coding_llm_backend,
+        "running experiments":    coding_llm_backend,
         "report writing":         llm_backend,
         "results interpretation": llm_backend,
         "report refinement":       llm_backend,
