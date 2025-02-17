@@ -92,8 +92,7 @@ class LaboratoryWorkflow:
             "report refinement":      {"time": 0.0, "steps": 0.0,},
         }
 
-        #self.save = True
-        self.save = False
+        self.save = True
         self.verbose = True
         # Following instantiations are not used
         self.reviewers = ReviewersAgent(platform=self.platform, notes=self.notes)
@@ -127,9 +126,14 @@ class LaboratoryWorkflow:
         @param phase: (str) phase string
         @return: None
         """
+        self.set_agent_attr("model_or_pipe", None, incl_rev=True)
+        tmp = self.pipe
+        self.pipe = None
         phase = phase.replace(" ", "_")
         with open(f"state_saves/{phase}.pkl", "wb") as f:
             pickle.dump(self, f)
+        self.pipe = tmp
+        self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
     def set_agent_attr(self, attr, obj, incl_rev=False):
         """
@@ -155,6 +159,12 @@ class LaboratoryWorkflow:
         self.professor.reset()
         self.ml_engineer.reset()
         self.sw_engineer.reset()
+
+    def clear_gpu_mem_used_by_hf(self):
+        self.set_agent_attr("model_or_pipe", None, incl_rev=True)
+        del self.pipe
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def perform_research(self):
         """
@@ -228,10 +238,9 @@ class LaboratoryWorkflow:
         Perform report refinement phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["report refinement"] != self.phase_models["report writing"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
             self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
@@ -268,11 +277,10 @@ class LaboratoryWorkflow:
         Perform report writing phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["results interpretation"] != self.phase_models["report writing"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.pipe = init_hf_pipe(self.phase_models["report writing"])
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
+            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
@@ -306,11 +314,10 @@ class LaboratoryWorkflow:
         Perform results interpretation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["results interpretation"] != self.phase_models["running experiments"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.pipe = init_hf_pipe(self.phase_models["results interpretation"])
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
+            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
@@ -348,11 +355,10 @@ class LaboratoryWorkflow:
         Perform running experiments phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["data preparation"] != self.phase_models["running experiments"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.pipe = init_hf_pipe(self.phase_models["running experiments"])
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
+            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
@@ -387,11 +393,10 @@ class LaboratoryWorkflow:
         Perform data preparation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["data preparation"] != self.phase_models["plan formulation"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.pipe = init_hf_pipe(self.phase_models["data preparation"])
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
+            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
@@ -464,11 +469,10 @@ class LaboratoryWorkflow:
         Perform plan formulation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface" and self.phase_models["literature review"] != self.phase_models["plan formulation"]:
-            del self.pipe
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.pipe = init_hf_pipe(self.phase_models["plan formulation"])
+        if self.platform == "huggingface":
+            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+                self.clear_gpu_mem_used_by_hf()
+            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
@@ -723,45 +727,6 @@ if __name__ == "__main__":
     else:
         research_topic = args.research_topic
 
-    if platform == "ollama":
-        if "deepseek-r1" in llm_backend:
-            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
-        else:
-            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{llm_backend}", messages=messages)\nanswer = completion.choices[0].message.content'
-    elif platform == "huggingface":
-        if "deepseek-r1" in llm_backend:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{llm_backend}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
-        else:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{llm_backend}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True)\nanswer = response[0]["generated_text"][len(prompt):]'
-
-    task_notes_LLM = [
-        {"phases": ["plan formulation"],
-         "note": f"You should come up with a plan for TWO experiments."},
-
-        {"phases": ["plan formulation", "data preparation", "running experiments"],
-         "note": f"Please use {llm_backend} for your experiments."},
-
-        {"phases": ["running experiments"],
-         "note": f'Use the following code to inference {llm_backend}: \n{call_model_prompt}\n'},
-
-        {"phases": ["running experiments"],
-         "note": f"You have access to only {llm_backend}, but do not use too many inferences. Use the provided inference code."},
-
-        {"phases": ["running experiments"],
-         "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
-
-        {"phases": ["data preparation", "running experiments"],
-         "note": "You are running programs on Ubuntu."},
-
-        {"phases": ["data preparation", "running experiments"],
-         "note": "Generate figures with very colorful and artistic design."},
-    ]
-
-    task_notes_LLM.append(
-        {"phases": ["literature review", "plan formulation", "data preparation", "running experiments", "results interpretation", "report writing", "report refinement"],
-        "note": f"You should always write in the following language to converse and to write the report {args.language}"},
-    )
-
     ####################################################
     ###  Stages where human input will be requested  ###
     ####################################################
@@ -778,15 +743,73 @@ if __name__ == "__main__":
     ###################################################
     ###  LLM Backend used for the different phases  ###
     ###################################################
+    #agent_models = {
+    #    "literature review":      llm_backend,
+    #    "plan formulation":       llm_backend,
+    #    "data preparation":       coding_llm_backend,
+    #    "running experiments":    coding_llm_backend,
+    #    "report writing":         llm_backend,
+    #    "results interpretation": llm_backend,
+    #    "report refinement":      llm_backend,
+    #}
     agent_models = {
-        "literature review":      llm_backend,
-        "plan formulation":       llm_backend,
-        "data preparation":       coding_llm_backend,
-        "running experiments":    coding_llm_backend,
-        "report writing":         llm_backend,
-        "results interpretation": llm_backend,
-        "report refinement":       llm_backend,
+        "literature review":      "Qwen/Qwen2.5-72B-Instruct",
+        "plan formulation":       "Qwen/Qwen2.5-72B-Instruct",
+        "data preparation":       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "running experiments":    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "report writing":         "Qwen/Qwen2.5-72B-Instruct",
+        "results interpretation": "Qwen/Qwen2.5-72B-Instruct",
+        "report refinement":      "Qwen/Qwen2.5-72B-Instruct",
     }
+
+    if platform == "ollama":
+        if "deepseek-r1" in llm_backend:
+            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
+        else:
+            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content'
+    elif platform == "huggingface":
+        max_length = 131072
+        if "deepseek-r1" in llm_backend:
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
+        else:
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]'
+
+    task_notes_LLM = [
+        {"phases": ["plan formulation"],
+         "note": f"You should come up with a plan for TWO experiments."},
+
+        #{"phases": ["plan formulation", "data preparation", "running experiments"],
+        # "note": f"Please use {llm_backend} for your experiments."},
+
+        {"phases": ["plan formulation"],
+         "note": f'Please use {agent_models["plan formulation"]} for your experiments.'},
+
+        {"phases": ["data preparation"],
+         "note": f'Please use {agent_models["data preparation"]} for your experiments.'},
+
+        {"phases": ["running experiments"],
+         "note": f'Please use {agent_models["running experiments"]} for your experiments.'},
+
+        {"phases": ["running experiments"],
+         "note": f'Use the following code to inference {agent_models["running experiments"]}: \n{call_model_prompt}\n'},
+
+        {"phases": ["running experiments"],
+         "note": f'You have access to only {agent_models["running experiments"]}, but do not use too many inferences. Use the provided inference code.'},
+
+        {"phases": ["running experiments"],
+         "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
+
+        {"phases": ["data preparation", "running experiments"],
+         "note": "You are running programs on Ubuntu."},
+
+        {"phases": ["data preparation", "running experiments"],
+         "note": "Generate figures with very colorful and artistic design."},
+    ]
+
+    task_notes_LLM.append(
+        {"phases": ["literature review", "plan formulation", "data preparation", "running experiments", "results interpretation", "report writing", "report refinement"],
+        "note": f"You should always write in the following language to converse and to write the report {args.language}"},
+    )
 
     show_r1_thoughts = {}
     for k, v in agent_models.items():
