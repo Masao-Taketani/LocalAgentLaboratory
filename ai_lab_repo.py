@@ -278,9 +278,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+            if self.pipe is not None and self.phase_models["report writing"] != self.phase_models["results interpretation"]: 
                 self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
+            self.pipe = init_hf_pipe(self.phase_models["report writing"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
@@ -315,9 +315,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+            if self.pipe is not None and self.phase_models["results interpretation"] != self.phase_models["running experiments"]: 
                 self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
+            self.pipe = init_hf_pipe(self.phase_models["results interpretation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
@@ -356,9 +356,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+            if self.pipe is not None and self.phase_models["running experiments"] != self.phase_models["data preparation"]: 
                 self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
+            self.pipe = init_hf_pipe(self.phase_models["running experiments"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
@@ -394,9 +394,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+            if self.pipe is not None and self.phase_models["data preparation"] != self.phase_models["plan formulation"]: 
                 self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
+            self.pipe = init_hf_pipe(self.phase_models["data preparation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
@@ -470,9 +470,9 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
         if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
+            if self.pipe is not None and self.phase_models["plan formulation"] != self.phase_models["literature review"]: 
                 self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
+            self.pipe = init_hf_pipe(self.phase_models["plan formulation"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
