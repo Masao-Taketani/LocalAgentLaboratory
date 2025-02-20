@@ -33,8 +33,9 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                 )
 
                 set_seed(0)
+                do_sample = True if temp != 0 else False
                 response = model_or_pipe(prompt,
-                                         do_sample=True,
+                                         do_sample=do_sample,
                                          temperature=temp,
                                          max_length=max_length,
                                          truncation=True
