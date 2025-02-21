@@ -2,6 +2,7 @@ import os, re
 import shutil
 import tiktoken
 import subprocess
+import json
 
 
 def compile_latex(latex_code, compile=True, output_filename="output.pdf", timeout=30):
@@ -39,7 +40,6 @@ def compile_latex(latex_code, compile=True, output_filename="output.pdf", timeou
         # If there is an error during LaTeX compilation, return the error message
         return f"[CODE EXECUTION ERROR]: Compilation failed: {e.stderr.decode('utf-8')} {e.output.decode('utf-8')}. There was an error in your latex."
 
-
 def count_tokens(messages, model="gpt-4"):
     enc = tiktoken.encoding_for_model(model)
     num_tokens = sum([len(enc.encode(message["content"])) for message in messages])
@@ -62,7 +62,6 @@ def remove_directory(dir_path):
     else:
         print(f"Directory {dir_path} does not exist or is not a directory.")
 
-
 def save_to_file(location, filename, data):
     """Utility function to save data as plain text."""
     filepath = os.path.join(location, filename)
@@ -72,7 +71,6 @@ def save_to_file(location, filename, data):
         print(f"Data successfully saved to {filepath}")
     except Exception as e:
         print(f"Error saving file {filename}: {e}")
-
 
 def clip_tokens(messages, model="gpt-4", max_tokens=100000):
     enc = tiktoken.encoding_for_model(model)
@@ -110,8 +108,6 @@ def clip_tokens(messages, model="gpt-4", max_tokens=100000):
             current_idx += message_token_count
     return clipped_messages
 
-
-
 def extract_prompt(text, word):
     code_block_pattern = rf"```{word}(.*?)```"
     code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
@@ -119,3 +115,10 @@ def extract_prompt(text, word):
     return extracted_code
 
 
+
+def read_jsonc(filepath: str):
+    with open(filepath, 'r', encoding='utf-8') as f:  
+        text = f.read()                               
+    re_text = re.sub(r'/\*[\s\S]*?\*/|//.*', '', text)
+    json_obj = json.loads(re_text)                    
+    return json_obj    
