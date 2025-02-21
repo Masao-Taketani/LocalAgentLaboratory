@@ -1,6 +1,7 @@
 from utils import extract_prompt
 from inference import query_model
 import re
+import json
 
 
 AVAILABLE_PLATFORMS = [
