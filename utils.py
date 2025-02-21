@@ -114,8 +114,7 @@ def extract_prompt(text, word):
     extracted_code = "\n".join(code_blocks).strip()
     return extracted_code
 
-
-
+# Referred to https://qiita.com/koppe/items/f27be003726b03304b24
 def read_jsonc(filepath: str):
     with open(filepath, 'r', encoding='utf-8') as f:  
         text = f.read()                               
