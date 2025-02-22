@@ -6,19 +6,20 @@ import pickle
 import time
 import os
 import gc
+import json
 
 from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe, AVAILABLE_PLATFORMS
-from utils import extract_prompt, save_to_file, remove_figures, remove_directory
+from utils import extract_prompt, save_to_file, remove_figures, remove_directory, read_jsonc
 from mlesolver import MLESolver
 from tools import ArxivSearch, HFDataSearch, execute_code
 
 
-DEFAULT_PLATFORM = "ollama"
-DEFAULT_LLM_BACKBONE = "qwen2.5:72b-instruct-q4_K_S"
+DEFAULT_PLATFORM = "huggingface"
+DEFAULT_LLM_BACKBONE = "Qwen/Qwen2.5-72B-Instruct"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, platform, show_r1_thoughts, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
+    def __init__(self, research_topic, platform, show_r1_thoughts, out_dirpath, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
                  notes=list(), human_in_loop_flag=None, compile_pdf=True, mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
@@ -39,6 +40,7 @@ class LaboratoryWorkflow:
         if self.platform == "huggingface":
             self.pipe = init_hf_pipe(agent_model_backbone["literature review"])
         self.show_r1_thoughts = show_r1_thoughts
+        self.out_dirpath = out_dirpath
 
         self.print_cost = True
         self.review_override = True # should review be overridden?
@@ -104,13 +106,13 @@ class LaboratoryWorkflow:
 
         # remove previous files
         remove_figures()
-        remove_directory("research_dir")
+        remove_directory(os.path.join(self.out_dirpath, "research_dir"))
         # make src and research directory
-        if not os.path.exists("state_saves"):
-            os.mkdir(os.path.join(".", "state_saves"))
-        os.mkdir(os.path.join(".", "research_dir"))
-        os.mkdir(os.path.join("./research_dir", "src"))
-        os.mkdir(os.path.join("./research_dir", "tex"))
+        if not os.path.exists(os.path.join(self.out_dirpath, "research_dir/state_saves")):
+            os.mkdir(os.path.join(self.out_dirpath, "research_dir/state_saves"))
+        os.mkdir(os.path.join(self.out_dirpath, "research_dir"))
+        os.mkdir(os.path.join(self.out_dirpath, "research_dir/src"))
+        os.mkdir(os.path.join(self.out_dirpath, "research_dir/tex"))
 
     def set_model(self, model, show_r1_thought):
         self.set_agent_attr("platform", self.platform, incl_rev=True)
@@ -130,7 +132,7 @@ class LaboratoryWorkflow:
         tmp = self.pipe
         self.pipe = None
         phase = phase.replace(" ", "_")
-        with open(f"state_saves/{phase}.pkl", "wb") as f:
+        with open(os.path.join(self.out_dirpath, f"research_dir/state_saves/{phase}.pkl"), "wb") as f:
             pickle.dump(self, f)
         self.pipe = tmp
         self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
@@ -281,6 +283,7 @@ class LaboratoryWorkflow:
             if self.pipe is not None and self.phase_models["report writing"] != self.phase_models["results interpretation"]: 
                 self.clear_gpu_mem_used_by_hf()
             self.pipe = init_hf_pipe(self.phase_models["report writing"])
+            #self.pipe = init_hf_pipe("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
@@ -291,7 +294,7 @@ class LaboratoryWorkflow:
         self.reference_papers = []
         solver = PaperSolver(platform=self.professor.platform, model_or_pipe=self.professor.model_or_pipe, show_r1_thought=self.professor.show_r1_thought, notes=report_notes, max_steps=self.papersolver_max_steps, plan=lab.phd.plan, exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, ref_papers=self.reference_papers, topic=research_topic, compile_pdf=compile_pdf)
         # run initialization for solver
-        solver.initial_solve()
+        solver.initial_solve(self.out_dirpath)
         # run solver for N mle optimization steps
         for _ in range(self.papersolver_max_steps):
             solver.solve()
@@ -304,8 +307,8 @@ class LaboratoryWorkflow:
             if retry: return retry
         self.set_agent_attr("report", report)
         readme = self.professor.generate_readme()
-        save_to_file("./research_dir", "README.md", readme)
-        save_to_file("./research_dir", "report.txt", report)
+        save_to_file(os.path.join(self.out_dirpath, "research_dir"), "README.md", readme)
+        save_to_file(os.path.join(self.out_dirpath, "research_dir"), "report.txt", report)
         self.reset_agents()
         return False
 
@@ -369,8 +372,8 @@ class LaboratoryWorkflow:
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
-        for _ in range(self.mlesolver_max_steps-1):
-            solver.solve()
+        #for _ in range(self.mlesolver_max_steps-1):
+        #    solver.solve()
         # get best code results
         code = "\n".join(solver.best_codes[0][0])
         # regenerate figures from top code
@@ -381,7 +384,7 @@ class LaboratoryWorkflow:
         if self.human_in_loop_flag["running experiments"]:
             retry = self.human_in_loop("running experiments", code)
             if retry: return retry
-        save_to_file("./research_dir/src", "run_experiments.py", code)
+        save_to_file(os.path.join(self.out_dirpath, "research_dir/src"), "run_experiments.py", code)
         self.set_agent_attr("results_code", code)
         self.set_agent_attr("exp_results", exp_results)
         # reset agent state
@@ -428,7 +431,7 @@ class LaboratoryWorkflow:
                     if self.human_in_loop_flag["data preparation"]:
                         retry = self.human_in_loop("data preparation", final_code)
                         if retry: return retry
-                    save_to_file("./research_dir/src", "load_data.py", final_code)
+                    save_to_file(os.path.join(self.out_dirpath, "research_dir/src"), "load_data.py", final_code)
                     self.set_agent_attr("dataset_code", final_code)
                     # reset agent state
                     self.reset_agents()
@@ -597,204 +600,60 @@ class LaboratoryWorkflow:
         return False
 
 
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="AgentLaboratory Research Workflow")
-
-    parser.add_argument(
-        '--copilot-mode',
-        type=str,
-        default="False",
-        help='Enable human interaction mode.'
-    )
-
-    parser.add_argument(
-        '--load-existing',
-        type=str,
-        default="False",
-        help='Do not load existing state; start a new workflow.'
-    )
-
-    parser.add_argument(
-        '--load-existing-path',
-        type=str,
-        help='Path to load existing state; start a new workflow, e.g. state_saves/results_interpretation.pkl'
-    )
-
-    parser.add_argument(
-        '--research-topic',
-        type=str,
-        help='Specify the research topic.'
-    )
-
-    parser.add_argument(
-        '--compile-latex',
-        type=str,
-        default="True",
-        help='Compile latex into pdf during paper writing phase. Disable if you can not install pdflatex.'
-    )
-
-    parser.add_argument(
-        "--platform",
-        type=str,
-        default="ollama",
-        choices=AVAILABLE_PLATFORMS,
-        help="Model platform to use for AI Scientist.",
-    )
-
-    parser.add_argument(
-        '--llm-backend',
-        type=str,
-        default="qwen2.5:72b-instruct-q4_K_M",
-        help="Specify a name of your model from available platforms for the backend LLM to use for agents in Agent Laboratory."
-    )
-
-    parser.add_argument(
-        '--coding-llm-backend',
-        type=str,
-        default=None,
-        help="Specify a name of your coding model from available platforms for the backend LLM to use for coding agents in Agent Laboratory."
-    )
-
-    parser.add_argument(
-        '--show_r1_thought',
-        type=str,
-        default="False",
-        help='This argment can only be used when one of the DeepSeek-R1 models is used in order to see the thought processes of the R1 model.'
-    )
-
-    parser.add_argument(
-        '--language',
-        type=str,
-        default="English",
-        help='Language to operate Agent Laboratory in.'
-    )
-
-    parser.add_argument(
-        '--num-papers-lit-review',
-        type=str,
-        default="5",
-        help='Total number of papers to summarize in literature review stage'
-    )
-
-    parser.add_argument(
-        '--mlesolver-max-steps',
-        type=str,
-        default="3",
-        help='Total number of mle-solver steps'
-    )
-
-    parser.add_argument(
-        '--papersolver-max-steps',
-        type=str,
-        default="5",
-        help='Total number of paper-solver steps'
-    )
-
-
-    return parser.parse_args()
-
-
 if __name__ == "__main__":
-    args = parse_arguments()
-
-    platform = args.platform
-    llm_backend = args.llm_backend
-    coding_llm_backend = args.coding_llm_backend if args.coding_llm_backend else llm_backend
-    human_mode = args.copilot_mode.lower() == "true"
-    compile_pdf = args.compile_latex.lower() == "true"
-    load_existing = args.load_existing.lower() == "true"
-    show_r1_thought = args.show_r1_thought.lower() == "true"
-    try:
-        num_papers_lit_review = int(args.num_papers_lit_review.lower())
-    except Exception:
-        raise Exception("args.num_papers_lit_review must be a valid integer!")
-    try:
-        papersolver_max_steps = int(args.papersolver_max_steps.lower())
-    except Exception:
-        raise Exception("args.papersolver_max_steps must be a valid integer!")
-    try:
-        mlesolver_max_steps = int(args.mlesolver_max_steps.lower())
-    except Exception:
-        raise Exception("args.papersolver_max_steps must be a valid integer!")
-
+    cfg = read_jsonc("config.json")
+    out_dirpath = cfg["out_dirpath"]
+    os.makedirs(out_dirpath, exist_ok=True)
+    platform = cfg["platform"]
+    compile_pdf = cfg["compile_latex"]
+    load_existing = cfg["load_existing"]
+    show_r1_thought = cfg["show_r1_thought"]
+    num_papers_lit_review = cfg["num_papers_lit_review"]
+    assert isinstance(num_papers_lit_review, int), "'num_papers_lit_review' must be a valid integer!"
+    papersolver_max_steps = cfg["papersolver_max_steps"]
+    assert isinstance(papersolver_max_steps, int), "'papersolver_max_steps' must be a valid integer!"
+    mlesolver_max_steps = cfg["mlesolver_max_steps"]
+    assert isinstance(mlesolver_max_steps, int), "'mlesolver_max_steps' must be a valid integer!"
 
     ##########################################################
     # Research question that the agents are going to explore #
     ##########################################################
-    if human_mode or args.research_topic is None:
-        research_topic = input("Please name an experiment idea for AgentLaboratory to perform: ")
-    else:
-        research_topic = args.research_topic
+    research_topic = cfg["research_topic"]
 
     ####################################################
     ###  Stages where human input will be requested  ###
     ####################################################
-    human_in_loop = {
-        "literature review":      human_mode,
-        "plan formulation":       human_mode,
-        "data preparation":       human_mode,
-        "running experiments":    human_mode,
-        "results interpretation": human_mode,
-        "report writing":         human_mode,
-        "report refinement":      human_mode,
-    }
+    human_in_loop = cfg["human_in_loop"]
 
     ###################################################
     ###  LLM Backend used for the different phases  ###
     ###################################################
-    #agent_models = {
-    #    "literature review":      llm_backend,
-    #    "plan formulation":       llm_backend,
-    #    "data preparation":       coding_llm_backend,
-    #    "running experiments":    coding_llm_backend,
-    #    "report writing":         llm_backend,
-    #    "results interpretation": llm_backend,
-    #    "report refinement":      llm_backend,
-    #}
-    agent_models = {
-        "literature review":      "Qwen/Qwen2.5-72B-Instruct",
-        "plan formulation":       "Qwen/Qwen2.5-72B-Instruct",
-        "data preparation":       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-        "running experiments":    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-        "report writing":         "Qwen/Qwen2.5-72B-Instruct",
-        "results interpretation": "Qwen/Qwen2.5-72B-Instruct",
-        "report refinement":      "Qwen/Qwen2.5-72B-Instruct",
-    }
+    agent_models = cfg["agent_models"]
 
     if platform == "ollama":
-        if "deepseek-r1" in llm_backend:
+        if "deepseek-r1" in agent_models["running experiments"]:
             call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
         else:
             call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content'
     elif platform == "huggingface":
         max_length = 131072
-        if "deepseek-r1" in llm_backend:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
+        if "deepseek-r1" in agent_models["running experiments"]:
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}", device_map="auto")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
         else:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]'
+            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}", device_map="auto")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]'
 
     task_notes_LLM = [
         {"phases": ["plan formulation"],
          "note": f"You should come up with a plan for TWO experiments."},
 
-        #{"phases": ["plan formulation", "data preparation", "running experiments"],
-        # "note": f"Please use {llm_backend} for your experiments."},
-
         {"phases": ["plan formulation"],
-         "note": f'Please use {agent_models["plan formulation"]} for your experiments.'},
+         "note": f'Please plan to use {agent_models["data preparation"]} for your data preparation and {agent_models["running experiments"]} for your experiments if you decide to use a LLM on those phases.'},
 
         {"phases": ["data preparation"],
-         "note": f'Please use {agent_models["data preparation"]} for your experiments.'},
+         "note": f'Please use {agent_models["data preparation"]} if you decide to use a LLM on this phase.'},
 
         {"phases": ["running experiments"],
-         "note": f'Please use {agent_models["running experiments"]} for your experiments.'},
-
-        {"phases": ["running experiments"],
-         "note": f'Use the following code to inference {agent_models["running experiments"]}: \n{call_model_prompt}\n'},
-
-        {"phases": ["running experiments"],
-         "note": f'You have access to only {agent_models["running experiments"]}, but do not use too many inferences. Use the provided inference code.'},
+         "note": f'Please use {agent_models["running experiments"]} if you decide to use a LLM on this phase. If you do so, Use the following code to inference {agent_models["running experiments"]}: \n{call_model_prompt}\nHowever, do not use too many inferences.'},
 
         {"phases": ["running experiments"],
          "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
@@ -808,7 +667,7 @@ if __name__ == "__main__":
 
     task_notes_LLM.append(
         {"phases": ["literature review", "plan formulation", "data preparation", "running experiments", "results interpretation", "report writing", "report refinement"],
-        "note": f"You should always write in the following language to converse and to write the report {args.language}"},
+        "note": f'You should always write in the following language to converse and to write the report {cfg["language"]}'},
     )
 
     show_r1_thoughts = {}
@@ -816,7 +675,7 @@ if __name__ == "__main__":
         show_r1_thoughts[k] = True if 'deepseek-r1' in v.lower() and show_r1_thought else False
 
     if load_existing:
-        load_path = args.load_existing_path
+        load_path = cfg["load_existing_path"]
         if load_path is None:
             raise ValueError("Please provide path to load existing state.")
         with open(load_path, "rb") as f:
@@ -833,6 +692,7 @@ if __name__ == "__main__":
             papersolver_max_steps=papersolver_max_steps,
             mlesolver_max_steps=mlesolver_max_steps,
             show_r1_thoughts=show_r1_thoughts,
+            out_dirpath=out_dirpath,
         )
 
     lab.perform_research()

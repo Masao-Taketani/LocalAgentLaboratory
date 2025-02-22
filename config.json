@@ -4,6 +4,8 @@
     /* Your state path where you want to start from. Only available when "load_existing" is true
      e.g. state_saves/results_interpretation.pkl */
     "load_existing_path": "your state path",
+    // Specify output directory path for states and research results
+    "out_dirpath": "examples/llms_on_cognitive_biases",
     // Research topic you want to write a paper about
     "research_topic": "Do language models exhibit cognitive biases similar to humans, such as anchoring bias?",
     // Whether to compile latex into pdf during paper writing phase. Disable if you can not install pdflatex.
@@ -18,7 +20,7 @@
         "report writing":         false,
         "report refinement":      false
     },
-    // ollama or huggingface platform is available
+    // Choose a LLM platform. "ollama" and "huggingface" are available
     "platform": "huggingface",
     // Specify model IDs you want to use for each phase
     "agent_models": {

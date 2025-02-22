@@ -5,13 +5,12 @@ import subprocess
 import json
 
 
-def compile_latex(latex_code, compile=True, output_filename="output.pdf", timeout=30):
+def compile_latex(latex_code, compile=True, dir_path, timeout=30):
     latex_code = latex_code.replace(
         r"\documentclass{article}",
         "\\documentclass{article}\n\\usepackage{amsmath}\n\\usepackage{amssymb}\n\\usepackage{array}\n\\usepackage{algorithm}\n\\usepackage{algorithmicx}\n\\usepackage{algpseudocode}\n\\usepackage{booktabs}\n\\usepackage{colortbl}\n\\usepackage{color}\n\\usepackage{enumitem}\n\\usepackage{fontawesome5}\n\\usepackage{float}\n\\usepackage{graphicx}\n\\usepackage{hyperref}\n\\usepackage{listings}\n\\usepackage{makecell}\n\\usepackage{multicol}\n\\usepackage{multirow}\n\\usepackage{pgffor}\n\\usepackage{pifont}\n\\usepackage{soul}\n\\usepackage{sidecap}\n\\usepackage{subcaption}\n\\usepackage{titletoc}\n\\usepackage[symbol]{footmisc}\n\\usepackage{url}\n\\usepackage{wrapfig}\n\\usepackage{xcolor}\n\\usepackage{xspace}")
-    #print(latex_code)
-    dir_path = "research_dir/tex"
-    tex_file_path = os.path.join(dir_path, "temp.tex")
+
+    tex_file_path = os.path.join(dir_path, "paper.tex")
     # Write the LaTeX code to the .tex file in the specified directory
     with open(tex_file_path, "w") as f:
         f.write(latex_code)
@@ -22,7 +21,7 @@ def compile_latex(latex_code, compile=True, output_filename="output.pdf", timeou
     # Compiling the LaTeX code using pdflatex with non-interactive mode and timeout
     try:
         result = subprocess.run(
-            ["pdflatex", "-interaction=nonstopmode", "temp.tex"],
+            ["pdflatex", "-interaction=nonstopmode", "paper.tex"],
             check=True,                   # Raises a CalledProcessError on non-zero exit codes
             stdout=subprocess.PIPE,        # Capture standard output
             stderr=subprocess.PIPE,        # Capture standard error
