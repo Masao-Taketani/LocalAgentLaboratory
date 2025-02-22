@@ -126,7 +126,7 @@ class PaperReplace(Command):
         args[1]: Whether to compile a PDF or not
         """
         new_latex = extract_prompt(args[0], "REPLACE")
-        latex_ret = compile_latex(new_latex, compile=args[1], dir_path=self.dir_path)
+        latex_ret = compile_latex(new_latex, self.dir_path, compile=args[1])
         if "[CODE EXECUTION ERROR]" in latex_ret: return False, (None, latex_ret,)
         return True, (new_latex.split("\n"), latex_ret)
 
@@ -163,7 +163,7 @@ class PaperEdit(Command):
                 current_latex.insert(args[0], _line)
             new_latex = "\n".join(current_latex)
             latex_exec = f"{new_latex}"
-            latex_ret = compile_latex(latex_exec, compile=args[4], dir_path=self.dir_path)
+            latex_ret = compile_latex(latex_exec, self.dir_path, compile=args[4])
             if "error" in latex_ret.lower(): return (False, None, latex_ret)
             return (True, current_latex, latex_ret)
         except Exception as e:

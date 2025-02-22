@@ -108,8 +108,8 @@ class LaboratoryWorkflow:
         remove_figures()
         remove_directory(os.path.join(self.out_dirpath, "research_dir"))
         # make src and research directory
-        if not os.path.exists(os.path.join(self.out_dirpath, "research_dir/state_saves")):
-            os.mkdir(os.path.join(self.out_dirpath, "research_dir/state_saves"))
+        if not os.path.exists(os.path.join(self.out_dirpath, "state_saves")):
+            os.mkdir(os.path.join(self.out_dirpath, "state_saves"))
         os.mkdir(os.path.join(self.out_dirpath, "research_dir"))
         os.mkdir(os.path.join(self.out_dirpath, "research_dir/src"))
         os.mkdir(os.path.join(self.out_dirpath, "research_dir/tex"))
@@ -132,7 +132,7 @@ class LaboratoryWorkflow:
         tmp = self.pipe
         self.pipe = None
         phase = phase.replace(" ", "_")
-        with open(os.path.join(self.out_dirpath, f"research_dir/state_saves/{phase}.pkl"), "wb") as f:
+        with open(os.path.join(self.out_dirpath, f"state_saves/{phase}.pkl"), "wb") as f:
             pickle.dump(self, f)
         self.pipe = tmp
         self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
@@ -605,7 +605,7 @@ def parse_arguments():
     parser.add_argument(
         '--config_path',
         type=str,
-        default="config.json"
+        default="config.json",
         help='Path to load config file used for AgentLaboratory Research Workflow.'
     )
     return parser.parse_args()
