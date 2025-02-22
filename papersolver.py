@@ -99,7 +99,8 @@ class Arxiv(Command):
 
 class PaperReplace(Command):
     def __init__(self):
-        super().__init__()
+        super().__init__(dir_path)
+        self.dir_path = dir_path
         self.cmd_type = "PAPER-replace"
 
     def docstring(self) -> str:
@@ -125,7 +126,7 @@ class PaperReplace(Command):
         args[1]: Whether to compile a PDF or not
         """
         new_latex = extract_prompt(args[0], "REPLACE")
-        latex_ret = compile_latex(new_latex, compile=args[1])
+        latex_ret = compile_latex(new_latex, compile=args[1], dir_path=self.dir_path)
         if "[CODE EXECUTION ERROR]" in latex_ret: return False, (None, latex_ret,)
         return True, (new_latex.split("\n"), latex_ret)
 
@@ -133,7 +134,8 @@ class PaperReplace(Command):
 
 class PaperEdit(Command):
     def __init__(self):
-        super().__init__()
+        super().__init__(dir_path)
+        self.dir_path = dir_path
         self.cmd_type = "PAPER-edit"
 
     def docstring(self) -> str:
@@ -161,7 +163,7 @@ class PaperEdit(Command):
                 current_latex.insert(args[0], _line)
             new_latex = "\n".join(current_latex)
             latex_exec = f"{new_latex}"
-            latex_ret = compile_latex(latex_exec, compile=args[4])
+            latex_ret = compile_latex(latex_exec, compile=args[4], dir_path=self.dir_path)
             if "error" in latex_ret.lower(): return (False, None, latex_ret)
             return (True, current_latex, latex_ret)
         except Exception as e:
@@ -295,7 +297,6 @@ class PaperSolver:
                 prompt=f"\nNow please enter a command: ",
                 temp=1.0,
                 show_r1_thought=self.show_r1_thought)
-            #print(model_resp)
             model_resp = self.clean_text(model_resp)
             cmd_str, paper_lines, prev_paper_ret, score = self.process_command(model_resp)
             if score is not None:
@@ -320,7 +321,7 @@ class PaperSolver:
             self.best_report.sort(key=lambda x: x[1], reverse=True)
         return model_resp, cmd_str
 
-    def initial_solve(self):
+    def initial_solve(self, dir_path):
         """
         Initialize the solver and get an initial set of papers and a return
         @return: None
@@ -329,12 +330,12 @@ class PaperSolver:
         # @@ Initial PaperGen Commands @@
         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         self.best_score = None
-        self.commands = [PaperReplace()]
+        self.commands = [PaperReplace(dir_path)]
         init_report, init_return, self.best_score = self.gen_initial_report()
         self.best_report = [(copy(init_report), self.best_score, init_return) for _ in range(1)]
 
         self.paper_lines = init_report
-        self.commands = [PaperEdit()] #, Replace()]
+        self.commands = [PaperEdit(dir_path)] #, Replace()]
         self.prev_working_report = copy(self.paper_lines)
 
     @staticmethod
@@ -386,7 +387,7 @@ class PaperSolver:
                     model_or_pipe=self.model_or_pipe,
                     system_prompt=self.system_prompt(section=_section),
                     prompt=f"{prompt}",
-                    temp=0.8,
+                    temp=1.0,
                     show_r1_thought=self.show_r1_thought)
                 model_resp = self.clean_text(model_resp)
                 if _section == "scaffold":

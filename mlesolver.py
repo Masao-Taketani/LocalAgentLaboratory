@@ -31,7 +31,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 logging.getLogger('sklearn.model_selection').setLevel(logging.WARNING)
 
 
-GLOBAL_REPAIR_ATTEMPTS = 2
+GLOBAL_REPAIR_ATTEMPTS = 100
 
 
 class Command:
@@ -198,7 +198,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
-            temp=0.8,
+            temp=1.0,
             show_r1_thought=show_r1_thought)
         return extract_prompt(model_resp, "python")
     elif ctype == "edit":
@@ -220,7 +220,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
-            temp=0.2,
+            temp=1.0,
             show_r1_thought=show_r1_thought)
         return model_resp
 
@@ -355,6 +355,7 @@ class MLESolver:
                            platform=self.platform, 
                            model_or_pipe=self.model_or_pipe, 
                            show_r1_thought=self.show_r1_thought)
+
     def process_command(self, model_resp):
         """
         Take command from language model and execute if valid
@@ -413,10 +414,10 @@ class MLESolver:
                         code_err = str()
                         for _tries in range(GLOBAL_REPAIR_ATTEMPTS):
                             success, args = cmd.parse_command(model_resp, self.dataset_code)
+                            # args[0]: code lines
+                            # args[1]: code execution return
                             code_err = f"Return from executing code: {args[1]}"
                             if success:
-                                # args[0]: code lines
-                                # args[1]: code execution return
                                 code_lines = copy(args[0])
                                 score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_r1_thought)
                                 if is_valid:
@@ -446,6 +447,7 @@ class MLESolver:
         @return: (str) history string
         """
         hist_str = ""
+        # Each element of self.st_history has [model_resp, prev_code_ret, code_lines, cmd_str]
         for _hist in range(len(self.st_history)):
             hist_str += f"-------- History ({len(self.st_history)-_hist} steps ago) -----\n"
             hist_str += f"Because of the following response: {self.st_history[_hist][0]}\n" if len(self.st_history[_hist][0]) > 0 else ""
