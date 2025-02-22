@@ -600,8 +600,21 @@ class LaboratoryWorkflow:
         return False
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="AgentLaboratory Research Workflow")
+    parser.add_argument(
+        '--config_path',
+        type=str,
+        default="config.json"
+        help='Path to load config file used for AgentLaboratory Research Workflow.'
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    cfg = read_jsonc("config.json")
+    args = parse_arguments()
+    cfg = read_jsonc(args.config_path)
+
     out_dirpath = cfg["out_dirpath"]
     os.makedirs(out_dirpath, exist_ok=True)
     platform = cfg["platform"]
