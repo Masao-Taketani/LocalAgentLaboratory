@@ -98,8 +98,8 @@ class Arxiv(Command):
 """
 
 class PaperReplace(Command):
-    def __init__(self):
-        super().__init__(dir_path)
+    def __init__(self, dir_path):
+        super().__init__()
         self.dir_path = dir_path
         self.cmd_type = "PAPER-replace"
 
@@ -133,8 +133,8 @@ class PaperReplace(Command):
 
 
 class PaperEdit(Command):
-    def __init__(self):
-        super().__init__(dir_path)
+    def __init__(self, dir_path):
+        super().__init__()
         self.dir_path = dir_path
         self.cmd_type = "PAPER-edit"
 

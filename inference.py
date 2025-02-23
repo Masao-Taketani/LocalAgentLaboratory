@@ -6,8 +6,8 @@ from transformers.pipelines.text_generation import TextGenerationPipeline
 
 
 def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, max_length=131072):
+    if temp is None: temp = 1.0
     for _ in range(tries):
-        if temp is None: temp = 1.0
         try:
             if platform == "ollama":
                 messages = [
