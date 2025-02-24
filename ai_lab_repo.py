@@ -19,7 +19,7 @@ DEFAULT_LLM_BACKBONE = "Qwen/Qwen2.5-72B-Instruct"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, platform, show_r1_thoughts, out_dirpath, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
+    def __init__(self, research_topic, platform, show_r1_thought, out_dirpath, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
                  notes=list(), human_in_loop_flag=None, compile_pdf=True, mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
@@ -34,12 +34,10 @@ class LaboratoryWorkflow:
         self.max_steps = max_steps
         self.compile_pdf = compile_pdf
         self.research_topic = research_topic
-        self.model_backbone = agent_model_backbone
         self.num_papers_lit_review = num_papers_lit_review
         self.platform = platform
-        if self.platform == "huggingface":
-            self.pipe = init_hf_pipe(agent_model_backbone["literature review"])
-        self.show_r1_thoughts = show_r1_thoughts
+
+        self.show_r1_thought = show_r1_thought
         self.out_dirpath = out_dirpath
 
         self.print_cost = True
@@ -68,19 +66,7 @@ class LaboratoryWorkflow:
             for subtask in subtasks:
                 self.phase_status[subtask] = False
 
-        if type(agent_model_backbone) == str:
-            self.phase_models = dict()
-            for phase, subtasks in self.phases:
-                for subtask in subtasks:
-                    self.phase_models[subtask] = agent_model_backbone
-        elif type(agent_model_backbone) == dict:
-            for phase, subtasks in self.phases:
-                for subtask in subtasks:
-                    assert subtask in agent_model_backbone, f"{subtask} is not in agent_model_backbone dict."
-                    val = agent_model_backbone[subtask]
-                    assert isinstance(val, str) and val, f"value of agent_model_backbone has to be str and not empty. What you input: {val}"
-            self.phase_models = agent_model_backbone
-
+        self.set_phase_models(agent_model_backbone)
 
         self.human_in_loop_flag = human_in_loop_flag
 
@@ -97,12 +83,12 @@ class LaboratoryWorkflow:
         self.save = True
         self.verbose = True
         # Following instantiations are not used
-        self.reviewers = ReviewersAgent(platform=self.platform, notes=self.notes)
-        self.phd = PhDStudentAgent(platform=self.platform, notes=self.notes, max_steps=self.max_steps)
-        self.postdoc = PostdocAgent(platform=self.platform, notes=self.notes, max_steps=self.max_steps)
-        self.professor = ProfessorAgent(platform=self.platform, notes=self.notes, max_steps=self.max_steps)
-        self.ml_engineer = MLEngineerAgent(platform=self.platform, notes=self.notes, max_steps=self.max_steps)
-        self.sw_engineer = SWEngineerAgent(platform=self.platform, notes=self.notes, max_steps=self.max_steps)
+        self.reviewers = ReviewersAgent()
+        self.phd = PhDStudentAgent(max_steps=self.max_steps)
+        self.postdoc = PostdocAgent(max_steps=self.max_steps)
+        self.professor = ProfessorAgent(max_steps=self.max_steps)
+        self.ml_engineer = MLEngineerAgent(max_steps=self.max_steps)
+        self.sw_engineer = SWEngineerAgent(max_steps=self.max_steps)
 
         # remove previous files
         remove_figures()
@@ -114,13 +100,27 @@ class LaboratoryWorkflow:
         os.mkdir(os.path.join(self.out_dirpath, "research_dir/src"))
         os.mkdir(os.path.join(self.out_dirpath, "research_dir/tex"))
 
-    def set_model(self, model, show_r1_thought):
-        self.set_agent_attr("platform", self.platform, incl_rev=True)
-        self.set_agent_attr("show_r1_thought", show_r1_thought, incl_rev=True)
-        if self.platform == "ollama":
-            self.set_agent_attr("model_or_pipe", model, incl_rev=True)
-        elif self.platform == "huggingface":
-            self.set_agent_attr("model_or_pipe", self.pipe)
+    def set_phase_models(self, agent_model_backbone):
+        for phase, subtasks in self.phases:
+            for subtask in subtasks:
+                assert subtask in agent_model_backbone, f"{subtask} is not in agent_model_backbone dict."
+                val = agent_model_backbone[subtask]
+                assert isinstance(val, str) and val, f"value of agent_model_backbone has to be str and not empty. What you input: {val}"
+        self.phase_models = agent_model_backbone
+
+    def set_model(self, model):
+        if self.platform == "huggingface":
+            self.model_or_pipe = init_hf_pipe(model)
+        elif self.platform == "ollama":
+            self.model_or_pipe = model
+
+    def set_model_for_task(self, task):
+        self.clear_gpu_mem_used_by_hf()
+        if task in self.phase_models:
+            self.set_model(self.phase_models[task])
+        else:
+            self.platform = DEFAULT_PLATFORM 
+            self.set_model(f"{DEFAULT_LLM_BACKBONE}")
 
     def save_state(self, phase):
         """
@@ -128,14 +128,15 @@ class LaboratoryWorkflow:
         @param phase: (str) phase string
         @return: None
         """
-        self.set_agent_attr("model_or_pipe", None, incl_rev=True)
-        tmp = self.pipe
-        self.pipe = None
+        if self.platform == "huggingface":
+            tmp = self.model_or_pipe
+            self.model_or_pipe = None
         phase = phase.replace(" ", "_")
         with open(os.path.join(self.out_dirpath, f"state_saves/{phase}.pkl"), "wb") as f:
             pickle.dump(self, f)
-        self.pipe = tmp
-        self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
+        if self.platform == "huggingface": 
+            self.model_or_pipe = tmp
+            del tmp
 
     def set_agent_attr(self, attr, obj, incl_rev=False):
         """
@@ -163,10 +164,10 @@ class LaboratoryWorkflow:
         self.sw_engineer.reset()
 
     def clear_gpu_mem_used_by_hf(self):
-        self.set_agent_attr("model_or_pipe", None, incl_rev=True)
-        del self.pipe
-        gc.collect()
-        torch.cuda.empty_cache()
+        if getattr(self, "model_or_pipe", None):
+            del self.model_or_pipe
+            gc.collect()
+            torch.cuda.empty_cache()
 
     def perform_research(self):
         """
@@ -177,38 +178,43 @@ class LaboratoryWorkflow:
             phase_start_time = time.time()  # Start timing the phase
             if self.verbose: print(f"{'*'*50}\nBeginning phase: {phase}\n{'*'*50}")
             for subtask in subtasks:
+                if self.phase_status[subtask]: 
+                    print(f"{'='*40}\nSkip {subtask}\n{'='*40}")
+                    continue
                 if self.verbose: print(f"{'&'*30}\nBeginning subtask: {subtask}\n{'&'*30}")
-                if type(self.phase_models) == dict:
-                    if subtask in self.phase_models:
-                        self.set_model(self.phase_models[subtask], self.show_r1_thoughts[subtask])
-                    else:
-                        self.platform = DEFAULT_PLATFORM 
-                        self.set_model(f"{DEFAULT_LLM_BACKBONE}", False)
+                
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "literature review":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.literature_review()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "plan formulation":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.plan_formulation()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "data preparation":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.data_preparation()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "running experiments":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.running_experiments()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "results interpretation":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.results_interpretation()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "report writing":
+                    self.set_model_for_task(subtask)
                     repeat = True
                     while repeat: repeat = self.report_writing()
                     self.phase_status[subtask] = True
                 if (subtask not in self.phase_status or not self.phase_status[subtask]) and subtask == "report refinement":
+                    self.set_model_for_task(subtask)
                     return_to_exp_phase = self.report_refinement()
 
                     if not return_to_exp_phase:
@@ -246,7 +252,7 @@ class LaboratoryWorkflow:
             self.pipe = init_hf_pipe(self.phase_models["report refinement"])
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
-        reviews = self.reviewers.inference(self.phd.plan, self.phd.report)
+        reviews = self.reviewers.inference(self.phd.plan, self.phd.report, self.platform, self.model_or_pipe, self.show_r1_thought)
         print("Reviews:", reviews)
         if self.human_in_loop_flag["report refinement"]:
             print(f"Provided are reviews from a set of three reviewers: {reviews}")
@@ -262,7 +268,8 @@ class LaboratoryWorkflow:
                     self.review_ovrd_steps += 1
             else:
                 response = self.phd.inference(
-                    research_topic=self.research_topic, phase="report refinement", feedback=review_prompt, step=0)
+                    research_topic=self.research_topic, phase="report refinement", feedback=review_prompt, step=0, 
+                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if len(response) == 0:
                 raise Exception("Model did not respond")
             response = response.lower().strip()[0]
@@ -287,12 +294,12 @@ class LaboratoryWorkflow:
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
-        report_notes = [_note["note"] for _note in self.ml_engineer.notes if "report writing" in _note["phases"]]
+        report_notes = [_note["note"] for _note in self.notes if "report writing" in _note["phases"]]
         report_notes = f"Notes for the task objective: {report_notes}\n" if len(report_notes) > 0 else ""
         # instantiate mle-solver
         from papersolver import PaperSolver
         self.reference_papers = []
-        solver = PaperSolver(platform=self.professor.platform, model_or_pipe=self.professor.model_or_pipe, show_r1_thought=self.professor.show_r1_thought, notes=report_notes, max_steps=self.papersolver_max_steps, plan=lab.phd.plan, exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, ref_papers=self.reference_papers, topic=research_topic, compile_pdf=compile_pdf)
+        solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=report_notes, max_steps=self.papersolver_max_steps, plan=lab.phd.plan, exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, ref_papers=self.reference_papers, topic=research_topic, compile_pdf=compile_pdf)
         # run initialization for solver
         solver.initial_solve(self.out_dirpath)
         # run solver for N mle optimization steps
@@ -306,7 +313,7 @@ class LaboratoryWorkflow:
             retry = self.human_in_loop("report writing", report)
             if retry: return retry
         self.set_agent_attr("report", report)
-        readme = self.professor.generate_readme()
+        readme = self.professor.generate_readme(self.platform, self.model_or_pipe, self.show_r1_thought)
         save_to_file(os.path.join(self.out_dirpath, "research_dir"), "README.md", readme)
         save_to_file(os.path.join(self.out_dirpath, "research_dir"), "report.txt", report)
         self.reset_agents()
@@ -327,7 +334,8 @@ class LaboratoryWorkflow:
         dialogue = str()
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
-            resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6)
+            resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6, 
+                                          platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -344,7 +352,8 @@ class LaboratoryWorkflow:
                 self.reset_agents()
                 self.statistics_per_phase["results interpretation"]["steps"] = _i
                 return False
-            resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6)
+            resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6,
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -358,7 +367,6 @@ class LaboratoryWorkflow:
         Perform running experiments phase
         @return: (bool) whether to repeat the phase
         """
-        print("self.phase_models:", self.phase_models)
         if self.platform == "huggingface":
             if self.pipe is not None and self.phase_models["running experiments"] != self.phase_models["data preparation"]: 
                 self.clear_gpu_mem_used_by_hf()
@@ -366,10 +374,10 @@ class LaboratoryWorkflow:
             self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
-        experiment_notes = [_note["note"] for _note in self.ml_engineer.notes if "running experiments" in _note["phases"]]
+        experiment_notes = [_note["note"] for _note in self.notes if "running experiments" in _note["phases"]]
         experiment_notes = f"Notes for the task objective: {experiment_notes}\n" if len(experiment_notes) > 0 else ""
         # instantiate mle-solver
-        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.ml_engineer.platform, model_or_pipe=self.ml_engineer.model_or_pipe, show_r1_thought=self.ml_engineer.show_r1_thought, notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
+        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
@@ -414,7 +422,9 @@ class LaboratoryWorkflow:
             if ml_feedback != "":
                 ml_feedback_in = "Feedback provided to the ML agent: " + ml_feedback
             else: ml_feedback_in = ""
-            resp = self.sw_engineer.inference(self.research_topic, "data preparation", feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", step=_i, temp=0.6)
+            resp = self.sw_engineer.inference(self.research_topic, "data preparation", 
+                        feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", 
+                        step=_i, temp=0.6, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             swe_feedback = str()
             swe_dialogue = str()
             if "```DIALOGUE" in resp:
@@ -445,7 +455,8 @@ class LaboratoryWorkflow:
                 ml_feedback_in = ""
             resp = self.ml_engineer.inference(
                 self.research_topic, "data preparation",
-                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=0.6)
+                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=0.6, 
+                platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
             ml_feedback = str()
             ml_dialogue = str()
@@ -484,7 +495,8 @@ class LaboratoryWorkflow:
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
             # inference postdoc to
-            resp = self.postdoc.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i)
+            resp = self.postdoc.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i,
+                                          platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
 
@@ -504,7 +516,8 @@ class LaboratoryWorkflow:
                 self.statistics_per_phase["plan formulation"]["steps"] = _i
                 return False
 
-            resp = self.phd.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i)
+            resp = self.phd.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i, 
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
 
             dialogue = str()
@@ -522,7 +535,8 @@ class LaboratoryWorkflow:
         arx_eng = ArxivSearch()
         max_tries = self.max_steps * 5 # lit review often requires extra steps
         # get initial response from PhD agent
-        resp = self.phd.inference(self.research_topic, "literature review", step=0, temp=0.8)
+        resp = self.phd.inference(self.research_topic, "literature review", step=0, temp=0.8, 
+                                  platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
         if self.verbose: print(resp, "\n~~~~~~~~~~~")
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
@@ -567,7 +581,8 @@ class LaboratoryWorkflow:
                 self.reset_agents()
                 self.statistics_per_phase["literature review"]["steps"] = _i
                 return False
-            resp = self.phd.inference(self.research_topic, "literature review", feedback=feedback, step=_i + 1, temp=0.8)
+            resp = self.phd.inference(self.research_topic, "literature review", feedback=feedback, step=_i + 1, temp=0.8, 
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
             if self.verbose: print(resp, "\n~~~~~~~~~~~")
         raise Exception("Max tries during phase: Literature Review")
 
@@ -684,16 +699,23 @@ if __name__ == "__main__":
         "note": f'You should always write in the following language to converse and to write the report {cfg["language"]}'},
     )
 
-    show_r1_thoughts = {}
-    for k, v in agent_models.items():
-        show_r1_thoughts[k] = True if 'deepseek-r1' in v.lower() and show_r1_thought else False
-
     if load_existing:
         load_path = cfg["load_existing_path"]
         if load_path is None:
             raise ValueError("Please provide path to load existing state.")
         with open(load_path, "rb") as f:
             lab = pickle.load(f)
+            # Override instance variables of lab
+            lab.notes = task_notes_LLM
+            lab.platform = platform
+            lab.set_phase_models(agent_models)
+            lab.human_in_loop_flag = human_in_loop
+            lab.compile_pdf = compile_pdf
+            lab.num_papers_lit_review = num_papers_lit_review
+            lab.papersolver_max_steps = papersolver_max_steps
+            lab.mlesolver_max_steps = mlesolver_max_steps
+            lab.show_r1_thought = show_r1_thought
+            lab.out_dirpath = out_dirpath
     else:
         lab = LaboratoryWorkflow(
             research_topic=research_topic,
@@ -705,7 +727,7 @@ if __name__ == "__main__":
             num_papers_lit_review=num_papers_lit_review,
             papersolver_max_steps=papersolver_max_steps,
             mlesolver_max_steps=mlesolver_max_steps,
-            show_r1_thoughts=show_r1_thoughts,
+            show_r1_thought=show_r1_thought,
             out_dirpath=out_dirpath,
         )
 

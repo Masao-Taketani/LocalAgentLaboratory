@@ -7,6 +7,7 @@ from transformers.pipelines.text_generation import TextGenerationPipeline
 
 def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, max_length=131072):
     if temp is None: temp = 1.0
+    print('temp:', temp)
     for _ in range(tries):
         try:
             if platform == "ollama":
