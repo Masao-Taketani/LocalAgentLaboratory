@@ -327,7 +327,7 @@ class LaboratoryWorkflow:
         dialogue = str()
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
-            resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i)
+            resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -344,7 +344,7 @@ class LaboratoryWorkflow:
                 self.reset_agents()
                 self.statistics_per_phase["results interpretation"]["steps"] = _i
                 return False
-            resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i)
+            resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -358,6 +358,7 @@ class LaboratoryWorkflow:
         Perform running experiments phase
         @return: (bool) whether to repeat the phase
         """
+        print("self.phase_models:", self.phase_models)
         if self.platform == "huggingface":
             if self.pipe is not None and self.phase_models["running experiments"] != self.phase_models["data preparation"]: 
                 self.clear_gpu_mem_used_by_hf()
@@ -372,8 +373,8 @@ class LaboratoryWorkflow:
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
-        #for _ in range(self.mlesolver_max_steps-1):
-        #    solver.solve()
+        for _ in range(self.mlesolver_max_steps-1):
+            solver.solve()
         # get best code results
         code = "\n".join(solver.best_codes[0][0])
         # regenerate figures from top code
@@ -413,7 +414,7 @@ class LaboratoryWorkflow:
             if ml_feedback != "":
                 ml_feedback_in = "Feedback provided to the ML agent: " + ml_feedback
             else: ml_feedback_in = ""
-            resp = self.sw_engineer.inference(self.research_topic, "data preparation", feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", step=_i)
+            resp = self.sw_engineer.inference(self.research_topic, "data preparation", feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", step=_i, temp=0.6)
             swe_feedback = str()
             swe_dialogue = str()
             if "```DIALOGUE" in resp:
@@ -444,7 +445,7 @@ class LaboratoryWorkflow:
                 ml_feedback_in = ""
             resp = self.ml_engineer.inference(
                 self.research_topic, "data preparation",
-                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i)
+                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=0.6)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
             ml_feedback = str()
             ml_dialogue = str()
