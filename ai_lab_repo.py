@@ -246,11 +246,6 @@ class LaboratoryWorkflow:
         Perform report refinement phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report refinement"] != self.phase_models["report writing"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report refinement"])
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         reviews = self.reviewers.inference(self.phd.plan, self.phd.report, self.platform, self.model_or_pipe, self.show_r1_thought)
         print("Reviews:", reviews)
@@ -269,7 +264,7 @@ class LaboratoryWorkflow:
             else:
                 response = self.phd.inference(
                     research_topic=self.research_topic, phase="report refinement", feedback=review_prompt, step=0, 
-                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=self.notes)
             if len(response) == 0:
                 raise Exception("Model did not respond")
             response = response.lower().strip()[0]
@@ -286,12 +281,6 @@ class LaboratoryWorkflow:
         Perform report writing phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["report writing"] != self.phase_models["results interpretation"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["report writing"])
-            #self.pipe = init_hf_pipe("deepseek-ai/DeepSeek-R1-Distill-Llama-70B")
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
         report_notes = [_note["note"] for _note in self.notes if "report writing" in _note["phases"]]
@@ -324,18 +313,14 @@ class LaboratoryWorkflow:
         Perform results interpretation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["results interpretation"] != self.phase_models["running experiments"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["results interpretation"])
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
         dialogue = str()
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
             resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6, 
-                                          platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                          platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                          show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -353,7 +338,8 @@ class LaboratoryWorkflow:
                 self.statistics_per_phase["results interpretation"]["steps"] = _i
                 return False
             resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6,
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -367,11 +353,6 @@ class LaboratoryWorkflow:
         Perform running experiments phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["running experiments"] != self.phase_models["data preparation"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["running experiments"])
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         # experiment notes
         experiment_notes = [_note["note"] for _note in self.notes if "running experiments" in _note["phases"]]
@@ -405,11 +386,6 @@ class LaboratoryWorkflow:
         Perform data preparation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["data preparation"] != self.phase_models["plan formulation"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["data preparation"])
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
         ml_feedback = str()
@@ -424,7 +400,8 @@ class LaboratoryWorkflow:
             else: ml_feedback_in = ""
             resp = self.sw_engineer.inference(self.research_topic, "data preparation", 
                         feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", 
-                        step=_i, temp=0.6, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                        step=_i, temp=0.6, platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                        show_r1_thought=self.show_r1_thought, notes=self.notes)
             swe_feedback = str()
             swe_dialogue = str()
             if "```DIALOGUE" in resp:
@@ -456,7 +433,8 @@ class LaboratoryWorkflow:
             resp = self.ml_engineer.inference(
                 self.research_topic, "data preparation",
                 feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=0.6, 
-                platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                show_r1_thought=self.show_r1_thought, notes=self.notes)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
             ml_feedback = str()
             ml_dialogue = str()
@@ -484,11 +462,6 @@ class LaboratoryWorkflow:
         Perform plan formulation phase
         @return: (bool) whether to repeat the phase
         """
-        if self.platform == "huggingface":
-            if self.pipe is not None and self.phase_models["plan formulation"] != self.phase_models["literature review"]: 
-                self.clear_gpu_mem_used_by_hf()
-            self.pipe = init_hf_pipe(self.phase_models["plan formulation"])
-            self.set_agent_attr("model_or_pipe", self.pipe, incl_rev=True)
 
         max_tries = self.max_steps
         dialogue = str()
@@ -496,7 +469,8 @@ class LaboratoryWorkflow:
         for _i in range(max_tries):
             # inference postdoc to
             resp = self.postdoc.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i,
-                                          platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                          platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                          show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
 
@@ -517,7 +491,8 @@ class LaboratoryWorkflow:
                 return False
 
             resp = self.phd.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i, 
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
 
             dialogue = str()
@@ -536,7 +511,8 @@ class LaboratoryWorkflow:
         max_tries = self.max_steps * 5 # lit review often requires extra steps
         # get initial response from PhD agent
         resp = self.phd.inference(self.research_topic, "literature review", step=0, temp=0.8, 
-                                  platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                  platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                  show_r1_thought=self.show_r1_thought, notes=self.notes)
         if self.verbose: print(resp, "\n~~~~~~~~~~~")
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
@@ -582,7 +558,8 @@ class LaboratoryWorkflow:
                 self.statistics_per_phase["literature review"]["steps"] = _i
                 return False
             resp = self.phd.inference(self.research_topic, "literature review", feedback=feedback, step=_i + 1, temp=0.8, 
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print(resp, "\n~~~~~~~~~~~")
         raise Exception("Max tries during phase: Literature Review")
 
@@ -625,6 +602,25 @@ def parse_arguments():
         help='Path to load config file used for AgentLaboratory Research Workflow.'
     )
     return parser.parse_args()
+
+def adjust_phase_status(lab, load_path):
+    # Update phase status based on the loaded state
+    basename = os.path.basename(load_path)
+    basename = basename.replace("_", " ")
+    done_up_to_this_task = basename.split(".pkl")[0]
+    task_exist = False
+    for _, subtasks in lab.phases:
+        for subtask in subtasks:
+            if done_up_to_this_task == subtask: 
+                task_exist = True
+                break
+    assert task_exist, f"task {load_path} does not exist. You need to specify correct pkl file."
+    for _, subtasks in lab.phases:
+        for subtask in subtasks:
+            lab.phase_status[subtask] = True
+            if done_up_to_this_task == subtask: 
+                break
+    return lab
 
 
 if __name__ == "__main__":
@@ -716,6 +712,7 @@ if __name__ == "__main__":
             lab.mlesolver_max_steps = mlesolver_max_steps
             lab.show_r1_thought = show_r1_thought
             lab.out_dirpath = out_dirpath
+            lab = adjust_phase_status(lab, load_path)
     else:
         lab = LaboratoryWorkflow(
             research_topic=research_topic,

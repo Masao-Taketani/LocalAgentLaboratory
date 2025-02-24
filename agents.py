@@ -250,11 +250,11 @@ class BaseAgent:
         text = text.replace("```\n", "```")
         return text
 
-    def inference(self, research_topic, phase, step, platform, model_or_pipe, show_r1_thought, feedback="", temp=None):
+    def inference(self, research_topic, phase, step, platform, model_or_pipe, show_r1_thought, notes, feedback="", temp=None):
         sys_prompt = f"""You are {self.role_description()} \nTask instructions: {self.phase_prompt(phase)}\n{self.command_descriptions(phase)}"""#\n{self.example_command(phase)}
         context = self.context(phase)
         history_str = "\n".join([_[1] for _ in self.history])
-        phase_notes = [_note for _note in self.notes if phase in _note["phases"]]
+        phase_notes = [_note for _note in notes if phase in _note["phases"]]
         notes_str = f"Notes for the task objective: {phase_notes}\n" if len(phase_notes) > 0 else ""
         complete_str = str()
         if step/(self.max_steps-1) > 0.7: complete_str = "You must finish this task and submit as soon as possible!"
