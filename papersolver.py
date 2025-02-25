@@ -406,9 +406,9 @@ class PaperSolver:
                             cmd_str = "Error: You MUST NOT include packages or documentclass in the text! Your latex MUST only include the section text, equations, and tables."
                             print("@@@ INIT ATTEMPT:", cmd_str)
                             continue
-                cmd_str, latex_lines, prev_latex_ret, score = self.process_command(model_resp)
+                cmd_str, latex_lines, prev_latex_ret, score = self.process_command(model_resp, scoring=False)
                 print(f"@@@ INIT ATTEMPT: Command Exec // Attempt {num_attempts}: ", str(cmd_str).replace("\n", " | "))
-                print(f"$$$ Score: {score}")
+                #print(f"$$$ Score: {score}")
                 if score is not None:
                     section_complete = True
                     section_scaffold = "\n".join(latex_lines)
@@ -416,6 +416,12 @@ class PaperSolver:
             self.paper_lines = section_scaffold.split("\n")
             print("$"*10, f"SCAFFOLD [{_section}] CREATED", "$"*10)
         print("$"*10, "SCAFFOLD CREATED", "$"*10)
+        score, _, _ = get_score(self.plan, 
+                                             "\n".join(latex_lines), 
+                                             platform=self.platform, 
+                                             model_or_pipe=self.model_or_pipe, 
+                                             show_r1_thought=self.show_r1_thought)
+        print(f"$$$ Score: {score}")
         return latex_lines, prev_latex_ret, score
 
     def process_command(self, model_resp, scoring=True):
