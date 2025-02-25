@@ -295,7 +295,7 @@ class PaperSolver:
                 model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
                 prompt=f"\nNow please enter a command: ",
-                temp=1.0,
+                temp=0.6,
                 show_r1_thought=self.show_r1_thought)
             model_resp = self.clean_text(model_resp)
             cmd_str, paper_lines, prev_paper_ret, score = self.process_command(model_resp)
@@ -364,6 +364,7 @@ class PaperSolver:
                                                model_or_pipe=self.model_or_pipe,
                                                prompt=f"Given the following research topic {self.topic} and research plan: \n\n{self.plan}\n\nPlease come up with a search query to find relevant papers on arXiv. Respond only with the search query and nothing else. This should be a string that will be used to find papers with semantically similar content. {att_str}", 
                                                system_prompt=f"You are a research paper finder. You must find papers for the section {_section}. Query must be text. Nothing else.", 
+                                               temp=0.6,
                                                show_r1_thought=self.show_r1_thought)
                     search_query.replace('"', '')
                     papers = arx.find_papers_by_str(query=search_query, N=10)
@@ -387,7 +388,7 @@ class PaperSolver:
                     model_or_pipe=self.model_or_pipe,
                     system_prompt=self.system_prompt(section=_section),
                     prompt=f"{prompt}",
-                    temp=1.0,
+                    temp=0.6,
                     show_r1_thought=self.show_r1_thought)
                 model_resp = self.clean_text(model_resp)
                 if _section == "scaffold":
@@ -405,9 +406,9 @@ class PaperSolver:
                             cmd_str = "Error: You MUST NOT include packages or documentclass in the text! Your latex MUST only include the section text, equations, and tables."
                             print("@@@ INIT ATTEMPT:", cmd_str)
                             continue
-                cmd_str, latex_lines, prev_latex_ret, score = self.process_command(model_resp, scoring=False)
+                cmd_str, latex_lines, prev_latex_ret, score = self.process_command(model_resp)
                 print(f"@@@ INIT ATTEMPT: Command Exec // Attempt {num_attempts}: ", str(cmd_str).replace("\n", " | "))
-                #print(f"$$$ Score: {score}")
+                print(f"$$$ Score: {score}")
                 if score is not None:
                     section_complete = True
                     section_scaffold = "\n".join(latex_lines)

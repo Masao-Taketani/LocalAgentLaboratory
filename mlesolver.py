@@ -198,7 +198,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
-            temp=1.0,
+            temp=0.6,
             show_r1_thought=show_r1_thought)
         return extract_prompt(model_resp, "python")
     elif ctype == "edit":
@@ -220,7 +220,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             model_or_pipe=model_or_pipe,
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
-            temp=1.0,
+            temp=0.2,
             show_r1_thought=show_r1_thought)
         return model_resp
 
@@ -288,7 +288,7 @@ class MLESolver:
                 model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
                 prompt=f"{err_hist}\nYou should now use ```REPLACE to create initial code to solve the challenge. Now please enter the ```REPLACE command below:\n ", 
-                temp=1.0,
+                temp=0.6,
                 show_r1_thought=self.show_r1_thought)
             model_resp = self.clean_text(model_resp)
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)

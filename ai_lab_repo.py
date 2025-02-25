@@ -11,6 +11,7 @@ import json
 from agents import ReviewersAgent, PhDStudentAgent, PostdocAgent, ProfessorAgent, MLEngineerAgent, SWEngineerAgent, init_hf_pipe, AVAILABLE_PLATFORMS
 from utils import extract_prompt, save_to_file, remove_figures, remove_directory, read_jsonc
 from mlesolver import MLESolver
+from papersolver import PaperSolver
 from tools import ArxivSearch, HFDataSearch, execute_code
 
 
@@ -19,8 +20,9 @@ DEFAULT_LLM_BACKBONE = "Qwen/Qwen2.5-72B-Instruct"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, platform, show_r1_thought, out_dirpath, max_steps=100, num_papers_lit_review=5, agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", 
-                 notes=list(), human_in_loop_flag=None, compile_pdf=True, mlesolver_max_steps=3, papersolver_max_steps=5):
+    def __init__(self, research_topic, platform, show_r1_thought, out_dirpath, max_steps=100, num_papers_lit_review=5, 
+                 agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", notes=list(), human_in_loop_flag=None, compile_pdf=True, 
+                 mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
         @param research_topic: (str) description of research idea to explore
@@ -264,7 +266,8 @@ class LaboratoryWorkflow:
             else:
                 response = self.phd.inference(
                     research_topic=self.research_topic, phase="report refinement", feedback=review_prompt, step=0, 
-                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=self.notes)
+                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                    notes=self.notes)
             if len(response) == 0:
                 raise Exception("Model did not respond")
             response = response.lower().strip()[0]
@@ -285,14 +288,19 @@ class LaboratoryWorkflow:
         # experiment notes
         report_notes = [_note["note"] for _note in self.notes if "report writing" in _note["phases"]]
         report_notes = f"Notes for the task objective: {report_notes}\n" if len(report_notes) > 0 else ""
-        # instantiate mle-solver
-        from papersolver import PaperSolver
         self.reference_papers = []
-        solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=report_notes, max_steps=self.papersolver_max_steps, plan=lab.phd.plan, exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, ref_papers=self.reference_papers, topic=research_topic, compile_pdf=compile_pdf)
+        # instantiate paper-solver
+        solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                             show_r1_thought=self.show_r1_thought, notes=report_notes, 
+                             max_steps=self.papersolver_max_steps, plan=lab.phd.plan, 
+                             exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, 
+                             insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, 
+                             ref_papers=self.reference_papers, topic=research_topic, 
+                             compile_pdf=compile_pdf)
         # run initialization for solver
         solver.initial_solve(self.out_dirpath)
         # run solver for N mle optimization steps
-        for _ in range(self.papersolver_max_steps):
+        for _ in range(self.papersolver_max_steps-1):
             solver.solve()
         # get best report results
         report = "\n".join(solver.best_report[0][0])
@@ -358,7 +366,10 @@ class LaboratoryWorkflow:
         experiment_notes = [_note["note"] for _note in self.notes if "running experiments" in _note["phases"]]
         experiment_notes = f"Notes for the task objective: {experiment_notes}\n" if len(experiment_notes) > 0 else ""
         # instantiate mle-solver
-        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
+        solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.platform, 
+                           model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                           notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, 
+                           max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
