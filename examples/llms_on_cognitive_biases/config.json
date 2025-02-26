@@ -28,9 +28,19 @@
         "plan formulation":       "Qwen/Qwen2.5-72B-Instruct",
         "data preparation":       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
         "running experiments":    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-        "report writing":         "Qwen/Qwen2.5-72B-Instruct",
         "results interpretation": "Qwen/Qwen2.5-72B-Instruct",
+        "report writing":         "Qwen/Qwen2.5-72B-Instruct",
         "report refinement":      "Qwen/Qwen2.5-72B-Instruct"
+    },
+    // Specify temperature used for inference for each phase
+    "temps": {
+        "literature review":      0.8,
+        "plan formulation":       1.0,
+        "data preparation":       0.6,
+        "running experiments":    0.6,
+        "results interpretation": 0.6,
+        "report writing":         0.2,
+        "report refinement":      1.0
     },
     // Whether to show thought processes. Only available when a deepseek-R1 model is used
     "show_r1_thought": false,

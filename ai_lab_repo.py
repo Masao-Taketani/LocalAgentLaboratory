@@ -20,15 +20,15 @@ DEFAULT_LLM_BACKBONE = "Qwen/Qwen2.5-72B-Instruct"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, platform, show_r1_thought, out_dirpath, max_steps=100, num_papers_lit_review=5, 
-                 agent_model_backbone=f"{DEFAULT_LLM_BACKBONE}", notes=list(), human_in_loop_flag=None, compile_pdf=True, 
+    def __init__(self, research_topic, platform, agent_model_backbone, temps, show_r1_thought, out_dirpath, 
+                 max_steps=100, num_papers_lit_review=5, notes=list(), human_in_loop_flag=None, compile_pdf=True, 
                  mlesolver_max_steps=3, papersolver_max_steps=5):
         """
         Initialize laboratory workflow
         @param research_topic: (str) description of research idea to explore
         @param max_steps: (int) max number of steps for each phase, i.e. compute tolerance budget
         @param num_papers_lit_review: (int) number of papers to include in the lit review
-        @param agent_model_backbone: (str or dict) model backbone to use for agents
+        @param agent_model_backbone: (dict) model backbone to use for agents
         @param notes: (list) notes for agent to follow during tasks
         """
 
@@ -38,6 +38,7 @@ class LaboratoryWorkflow:
         self.research_topic = research_topic
         self.num_papers_lit_review = num_papers_lit_review
         self.platform = platform
+        self.temps = temps
 
         self.show_r1_thought = show_r1_thought
         self.out_dirpath = out_dirpath
@@ -248,15 +249,16 @@ class LaboratoryWorkflow:
         Perform report refinement phase
         @return: (bool) whether to repeat the phase
         """
-
-        reviews = self.reviewers.inference(self.phd.plan, self.phd.report, self.platform, self.model_or_pipe, self.show_r1_thought)
+        subtask_name = "report refinement"
+        reviews = self.reviewers.inference(self.phd.plan, self.phd.report, self.platform, self.model_or_pipe,
+                                           self.show_r1_thought)
         print("Reviews:", reviews)
-        if self.human_in_loop_flag["report refinement"]:
+        if self.human_in_loop_flag[subtask_name]:
             print(f"Provided are reviews from a set of three reviewers: {reviews}")
             input("Would you like to be completed with the project or should the agents go back and improve their experimental results?\n (y) to go back (n) to complete project: ")
         else:
             review_prompt = f"Provided are reviews from a set of three reviewers: {reviews}. Would you like to be completed with the project or do you want to go back to the planning phase and improve your experiments?\n Type y and nothing else to go back, type n and nothing else for complete project."
-            self.phd.phases.append("report refinement")
+            self.phd.phases.append(subtask_name)
             if self.review_override:
                 if self.review_total_steps == self.review_ovrd_steps:
                     response = "n"
@@ -265,9 +267,9 @@ class LaboratoryWorkflow:
                     self.review_ovrd_steps += 1
             else:
                 response = self.phd.inference(
-                    research_topic=self.research_topic, phase="report refinement", feedback=review_prompt, step=0, 
-                    platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
-                    notes=self.notes)
+                    research_topic=self.research_topic, phase=subtask_name, feedback=review_prompt, step=0, 
+                    temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                    show_r1_thought=self.show_r1_thought, notes=self.notes)
             if len(response) == 0:
                 raise Exception("Model did not respond")
             response = response.lower().strip()[0]
@@ -284,13 +286,13 @@ class LaboratoryWorkflow:
         Perform report writing phase
         @return: (bool) whether to repeat the phase
         """
-
+        subtask_name = "report writing"
         # experiment notes
-        report_notes = [_note["note"] for _note in self.notes if "report writing" in _note["phases"]]
+        report_notes = [_note["note"] for _note in self.notes if subtask_name in _note["phases"]]
         report_notes = f"Notes for the task objective: {report_notes}\n" if len(report_notes) > 0 else ""
         self.reference_papers = []
         # instantiate paper-solver
-        solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, 
+        solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name], 
                              show_r1_thought=self.show_r1_thought, notes=report_notes, 
                              max_steps=self.papersolver_max_steps, plan=lab.phd.plan, 
                              exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, 
@@ -306,8 +308,8 @@ class LaboratoryWorkflow:
         report = "\n".join(solver.best_report[0][0])
         score = solver.best_report[0][1]
         if self.verbose: print(f"Report writing completed, reward function score: {score}")
-        if self.human_in_loop_flag["report writing"]:
-            retry = self.human_in_loop("report writing", report)
+        if self.human_in_loop_flag[subtask_name]:
+            retry = self.human_in_loop(subtask_name, report)
             if retry: return retry
         self.set_agent_attr("report", report)
         readme = self.professor.generate_readme(self.platform, self.model_or_pipe, self.show_r1_thought)
@@ -321,14 +323,15 @@ class LaboratoryWorkflow:
         Perform results interpretation phase
         @return: (bool) whether to repeat the phase
         """
-
+        subtask_name = "results interpretation"
         max_tries = self.max_steps
         dialogue = str()
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
-            resp = self.postdoc.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6, 
-                                          platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                                          show_r1_thought=self.show_r1_thought, notes=self.notes)
+            resp = self.postdoc.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
+                                          temp=self.temps[subtask_name], platform=self.platform, 
+                                          model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                                          notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -337,17 +340,18 @@ class LaboratoryWorkflow:
                 if self.verbose: print("#"*40, "\n", "Postdoc Dialogue:", dialogue, "\n", "#"*40)
             if "```INTERPRETATION" in resp:
                 interpretation = extract_prompt(resp, "INTERPRETATION")
-                if self.human_in_loop_flag["results interpretation"]:
-                    retry = self.human_in_loop("results interpretation", interpretation)
+                if self.human_in_loop_flag[subtask_name]:
+                    retry = self.human_in_loop(subtask_name, interpretation)
                     if retry: return retry
                 self.set_agent_attr("interpretation", interpretation)
                 # reset agent state
                 self.reset_agents()
-                self.statistics_per_phase["results interpretation"]["steps"] = _i
+                self.statistics_per_phase[subtask_name]["steps"] = _i
                 return False
-            resp = self.phd.inference(self.research_topic, "results interpretation", feedback=dialogue, step=_i, temp=0.6,
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
+            resp = self.phd.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
+                                      temp=self.temps[subtask_name], platform=self.platform, 
+                                      model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                                      notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
             if "```DIALOGUE" in resp:
@@ -361,15 +365,16 @@ class LaboratoryWorkflow:
         Perform running experiments phase
         @return: (bool) whether to repeat the phase
         """
-
+        subtask_name = "running experiments"
         # experiment notes
-        experiment_notes = [_note["note"] for _note in self.notes if "running experiments" in _note["phases"]]
+        experiment_notes = [_note["note"] for _note in self.notes if subtask_name in _note["phases"]]
         experiment_notes = f"Notes for the task objective: {experiment_notes}\n" if len(experiment_notes) > 0 else ""
         # instantiate mle-solver
         solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.platform, 
-                           model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
-                           notes=experiment_notes, insights=self.ml_engineer.lit_review_sum, 
-                           max_steps=self.mlesolver_max_steps, plan=self.ml_engineer.plan)
+                           model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name], 
+                           show_r1_thought=self.show_r1_thought, notes=experiment_notes, 
+                           insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, 
+                           plan=self.ml_engineer.plan)
         # run initialization for solver
         solver.initial_solve()
         # run solver for N mle optimization steps
@@ -382,8 +387,8 @@ class LaboratoryWorkflow:
         score = solver.best_codes[0][1]
         exp_results = solver.best_codes[0][2]
         if self.verbose: print(f"Running experiments completed, reward function score: {score}")
-        if self.human_in_loop_flag["running experiments"]:
-            retry = self.human_in_loop("running experiments", code)
+        if self.human_in_loop_flag[subtask_name]:
+            retry = self.human_in_loop(subtask_name, code)
             if retry: return retry
         save_to_file(os.path.join(self.out_dirpath, "research_dir/src"), "run_experiments.py", code)
         self.set_agent_attr("results_code", code)
@@ -398,6 +403,7 @@ class LaboratoryWorkflow:
         @return: (bool) whether to repeat the phase
         """
 
+        subtask_name = "data preparation"
         max_tries = self.max_steps
         ml_feedback = str()
         ml_dialogue = str()
@@ -409,9 +415,9 @@ class LaboratoryWorkflow:
             if ml_feedback != "":
                 ml_feedback_in = "Feedback provided to the ML agent: " + ml_feedback
             else: ml_feedback_in = ""
-            resp = self.sw_engineer.inference(self.research_topic, "data preparation", 
+            resp = self.sw_engineer.inference(self.research_topic, subtask_name, 
                         feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", 
-                        step=_i, temp=0.6, platform=self.platform, model_or_pipe=self.model_or_pipe, 
+                        step=_i, temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
                         show_r1_thought=self.show_r1_thought, notes=self.notes)
             swe_feedback = str()
             swe_dialogue = str()
@@ -427,14 +433,14 @@ class LaboratoryWorkflow:
                 if "[CODE EXECUTION ERROR]" in code_resp:
                     swe_feedback += "\nERROR: Final code had an error and could not be submitted! You must address and fix this error.\n"
                 else:
-                    if self.human_in_loop_flag["data preparation"]:
-                        retry = self.human_in_loop("data preparation", final_code)
+                    if self.human_in_loop_flag[subtask_name]:
+                        retry = self.human_in_loop(subtask_name, final_code)
                         if retry: return retry
                     save_to_file(os.path.join(self.out_dirpath, "research_dir/src"), "load_data.py", final_code)
                     self.set_agent_attr("dataset_code", final_code)
                     # reset agent state
                     self.reset_agents()
-                    self.statistics_per_phase["data preparation"]["steps"] = _i
+                    self.statistics_per_phase[subtask_name]["steps"] = _i
                     return False
 
             if ml_feedback != "":
@@ -442,8 +448,8 @@ class LaboratoryWorkflow:
             else:
                 ml_feedback_in = ""
             resp = self.ml_engineer.inference(
-                self.research_topic, "data preparation",
-                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=0.6, 
+                self.research_topic, subtask_name,
+                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=self.temps[subtask_name], 
                 platform=self.platform, model_or_pipe=self.model_or_pipe, 
                 show_r1_thought=self.show_r1_thought, notes=self.notes)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
@@ -473,14 +479,15 @@ class LaboratoryWorkflow:
         Perform plan formulation phase
         @return: (bool) whether to repeat the phase
         """
-
+        
+        subtask_name = "plan formulation"
         max_tries = self.max_steps
         dialogue = str()
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
             # inference postdoc to
-            resp = self.postdoc.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i,
-                                          platform=self.platform, model_or_pipe=self.model_or_pipe, 
+            resp = self.postdoc.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i,
+                                          platform=self.platform, model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name],
                                           show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
@@ -492,17 +499,17 @@ class LaboratoryWorkflow:
 
             if "```PLAN" in resp:
                 plan = extract_prompt(resp, "PLAN")
-                if self.human_in_loop_flag["plan formulation"]:
-                    retry = self.human_in_loop("plan formulation", plan)
+                if self.human_in_loop_flag[subtask_name]:
+                    retry = self.human_in_loop(subtask_name, plan)
                     if retry: return retry
                 self.set_agent_attr("plan", plan)
                 # reset agent state
                 self.reset_agents()
-                self.statistics_per_phase["plan formulation"]["steps"] = _i
+                self.statistics_per_phase[subtask_name]["steps"] = _i
                 return False
 
-            resp = self.phd.inference(self.research_topic, "plan formulation", feedback=dialogue, step=_i, 
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
+            resp = self.phd.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
+                                      platform=self.platform, model_or_pipe=self.model_or_pipe,  temp=self.temps[subtask_name],
                                       show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
 
@@ -518,10 +525,11 @@ class LaboratoryWorkflow:
         Perform literature review phase
         @return: (bool) whether to repeat the phase
         """
+        subtask_name = "literature review"
         arx_eng = ArxivSearch()
         max_tries = self.max_steps * 5 # lit review often requires extra steps
         # get initial response from PhD agent
-        resp = self.phd.inference(self.research_topic, "literature review", step=0, temp=0.8, 
+        resp = self.phd.inference(self.research_topic, subtask_name, step=0, temp=self.temps[subtask_name], 
                                   platform=self.platform, model_or_pipe=self.model_or_pipe, 
                                   show_r1_thought=self.show_r1_thought, notes=self.notes)
         if self.verbose: print(resp, "\n~~~~~~~~~~~")
@@ -554,8 +562,8 @@ class LaboratoryWorkflow:
                 # generate formal review
                 lit_review_sum = self.phd.format_review()
                 # if human in loop -> check if human is happy with the produced review
-                if self.human_in_loop_flag["literature review"]:
-                    retry = self.human_in_loop("literature review", lit_review_sum)
+                if self.human_in_loop_flag[subtask_name]:
+                    retry = self.human_in_loop(subtask_name, lit_review_sum)
                     # if not happy, repeat the process with human feedback
                     if retry:
                         self.phd.lit_review = []
@@ -566,10 +574,10 @@ class LaboratoryWorkflow:
                 self.set_agent_attr("lit_review_sum", lit_review_sum)
                 # reset agent state
                 self.reset_agents()
-                self.statistics_per_phase["literature review"]["steps"] = _i
+                self.statistics_per_phase[subtask_name]["steps"] = _i
                 return False
-            resp = self.phd.inference(self.research_topic, "literature review", feedback=feedback, step=_i + 1, temp=0.8, 
-                                      platform=self.platform, model_or_pipe=self.model_or_pipe, 
+            resp = self.phd.inference(self.research_topic, subtask_name, feedback=feedback, step=_i + 1, 
+                                      temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
                                       show_r1_thought=self.show_r1_thought, notes=self.notes)
             if self.verbose: print(resp, "\n~~~~~~~~~~~")
         raise Exception("Max tries during phase: Literature Review")
@@ -666,6 +674,11 @@ if __name__ == "__main__":
     ###################################################
     agent_models = cfg["agent_models"]
 
+    ############################################################
+    ### INference temperatures used for the different phases ###
+    ############################################################
+    temps = cfg["temps"]
+
     if platform == "ollama":
         if "deepseek-r1" in agent_models["running experiments"]:
             call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
@@ -730,12 +743,13 @@ if __name__ == "__main__":
             notes=task_notes_LLM,
             platform=platform,
             agent_model_backbone=agent_models,
+            temps=temps,
+            show_r1_thought=show_r1_thought,
             human_in_loop_flag=human_in_loop,
             compile_pdf=compile_pdf,
             num_papers_lit_review=num_papers_lit_review,
             papersolver_max_steps=papersolver_max_steps,
             mlesolver_max_steps=mlesolver_max_steps,
-            show_r1_thought=show_r1_thought,
             out_dirpath=out_dirpath,
         )
 
