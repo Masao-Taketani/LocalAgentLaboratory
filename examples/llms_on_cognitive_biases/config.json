@@ -1,0 +1,45 @@
+{
+    // Whether to start from scratch or in the middle of your saved state
+    "load_existing": false,
+    /* Your state path where you want to start from. Only available when "load_existing" is true
+     e.g. state_saves/results_interpretation.pkl */
+    "load_existing_path": "your state path",
+    // Specify output directory path for states and research results
+    "out_dirpath": "examples/llms_on_cognitive_biases",
+    // Research topic you want to write a paper about
+    "research_topic": "Do language models exhibit cognitive biases similar to humans, such as anchoring bias?",
+    // Whether to compile latex into pdf during paper writing phase. Disable if you can not install pdflatex.
+    "compile_latex": true,
+    // Flag true if you want to intervene for each phase
+    "human_in_loop": {
+        "literature review":      false,
+        "plan formulation":       false,
+        "data preparation":       false,
+        "running experiments":    false,
+        "results interpretation": false,
+        "report writing":         false,
+        "report refinement":      false
+    },
+    // Choose a LLM platform. "ollama" and "huggingface" are available
+    "platform": "huggingface",
+    // Specify model IDs you want to use for each phase
+    "agent_models": {
+        "literature review":      "Qwen/Qwen2.5-72B-Instruct",
+        "plan formulation":       "Qwen/Qwen2.5-72B-Instruct",
+        "data preparation":       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "running experiments":    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "report writing":         "Qwen/Qwen2.5-72B-Instruct",
+        "results interpretation": "Qwen/Qwen2.5-72B-Instruct",
+        "report refinement":      "Qwen/Qwen2.5-72B-Instruct"
+    },
+    // Whether to show thought processes. Only available when a deepseek-R1 model is used
+    "show_r1_thought": false,
+    // Language to operate Agent Laboratory in.
+    "language": "English",
+    // Total number of papers to summarize in literature review stage
+    "num_papers_lit_review": 5,
+    // Total number of mle-solver steps
+    "mlesolver_max_steps": 1,
+    // Total number of paper-solver steps
+    "papersolver_max_steps": 5
+}    
