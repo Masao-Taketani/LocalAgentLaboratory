@@ -44,7 +44,7 @@ I have made some modifications in this repo from the original one.
 
 ### Supported Platforms and Models
 For this repo, any models from Ollama or Hugging Face, including the recently-announced DeepSeek R1 models, are supported to be used as local LLMs. 
-So, pick a platform either `huggingface` or `ollama` using `--platform` argument. E.g. `--platform huggingface`.
+So, pick a platform either `huggingface` or `ollama` using [`--platform`](config.json#L24) argument. E.g. `--platform huggingface`.
 
 If you'd like to check thought processes when you use one of the DeepSeek R1 models, set a flag named [`--show-r1-thought`](config.json#L46) as `true`. That way, you can see the thought processes in the console!
 
@@ -76,14 +76,15 @@ python ai_lab_repo.py --config_path [your config path]
 
 ### Co-Pilot Mode
 
-Please refer to [config.json](config.json#L14).
+If you would like to do co-pilot mode, modify the provided config file. Please refer to [config.json](config.json#L14).
 
 
 ## Tips for Better Research Outcomes
 
 #### [Tip #0] 🌡️ Adjust proper temperature for each phase! 🌡️
 
-Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, adjusting temperature is crucial. As I have experienced several times during experiments with this repo, I have encountered so many errors especially when LLMs are dealing with writing code and paper. Often times, by adjusting temperature for those phases would work well although intial setting of temperature would not. As I said, `data preparation`, `running experiments`, and `report writing` phases are the most notorious ones! So, be patient, and conduct grid search or whatever you feel like. For reference, I have tried temperature from 0.0 to 1.0. It sometime worked and sometime not. So, see it for yourself! You can adjust each temperature [here](config.json#36).
+Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, adjusting temperature is crucial. As I have experienced several times during experiments with this repo, I have encountered so many errors especially when LLMs are dealing with writing code and paper. Often times, by adjusting temperature for those phases would work well although intial setting of temperature would not. As I said, `data preparation`, `running experiments`, and `report writing` phases are the most notorious ones! So, be patient, and conduct grid search or whatever you feel like. For reference, I have tried temperature from 0.0 to 1.0. It sometime worked and sometime not. So, see it for yourself! You can adjust each temperature [here](config.json#L36).
+
 -----
 
 #### [Tip #1] 📝 Make sure to write extensive notes! 📝
