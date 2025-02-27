@@ -23,7 +23,7 @@ I have made some modifications in this repo from the original one.
 - Fixed some prompts for clearer instructions
 - Made arguments and some parameters configurable using a JSON config file
 - Made clear the import dependencies because the original code frequently uses `import *`, which is ambiguous and not recommended
-- Include some examples that were created using Local LLMs. Please refer to `examples` directory for details
+- Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details
 
 ## 📖 Overview
 
@@ -76,7 +76,7 @@ python ai_lab_repo.py --config_path [your config path]
 
 ### Co-Pilot Mode
 
-Please refer to [config.jsoncon](config.json#L14).
+Please refer to [config.json](config.json#L14).
 
 
 ## Tips for Better Research Outcomes
@@ -92,7 +92,7 @@ Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, a
 
 This is also your opportunity to let the agent know **what compute resources it has access to**, e.g. GPUs (how many, what type of GPU, how many GBs), CPUs (how many cores, what type of CPUs), storage limitations, and hardware specs.
 
-In order to add notes, you must modify the [task_notes_LLM](ai_lab_repo.py#694) structure inside of `ai_lab_repo.py`. 
+In order to add notes, you must modify the [task_notes_LLM](ai_lab_repo.py#L694) structure inside of `ai_lab_repo.py`. 
 
 #### [Tip #2] 🚀 Using more powerful models generally leads to better research 🚀
 
@@ -106,13 +106,13 @@ When resources are limited, **optimize by fine-tuning smaller models** on your s
 
 #### [Tip #3] ✅ You can load previous saves from checkpoints ✅
 
-**If you lose progress, or if a subtask fails, you can always load from a previous state.** All of your progress is saved by default in the `state_saves` variable, which stores each individual checkpoint. Just set `load_existing` as `true`, which can be found [here](config.json#3), and pass your saved state [here](config.json#6) when running `ai_lab_repo.py`
+**If you lose progress, or if a subtask fails, you can always load from a previous state.** All of your progress is saved by default in the `state_saves` variable, which stores each individual checkpoint. Just set `load_existing` as `true`, which can be found [here](config.json#L3), and pass your saved state [here](config.json#L6) when running `ai_lab_repo.py`
 
 -----
 
 #### [Tip #4] 🈯 If you are running in a language other than English 🈲
 
-If you are running Agent Laboratory in a language other than English, no problem, just make sure to provide a language flag to the agents to perform research in your preferred language. Note that we have not extensively studied running Local Agent Laboratory in other languages, so be sure to report any problems you encounter. You can adjust the language [here](config.json#48).
+If you are running Agent Laboratory in a language other than English, no problem, just make sure to provide a language flag to the agents to perform research in your preferred language. Note that we have not extensively studied running Local Agent Laboratory in other languages, so be sure to report any problems you encounter. You can adjust the language [here](config.json#L48).
 
 ----
 
