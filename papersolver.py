@@ -253,7 +253,8 @@ Please make sure the abstract reads smoothly and is well-motivated. This should 
 }
 
 class PaperSolver:
-    def __init__(self, platform, model_or_pipe, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None, exp_code=None, exp_results=None, lit_review=None, ref_papers=None, topic=None, compile_pdf=True):
+    def __init__(self, platform, model_or_pipe, temp, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None, 
+                 exp_code=None, exp_results=None, lit_review=None, ref_papers=None, topic=None, compile_pdf=True):
         if notes is None: self.notes = []
         else: self.notes = notes
         if plan is None: self.plan = ""
@@ -281,6 +282,7 @@ class PaperSolver:
         self.section_related_work = {}
         self.platform = platform
         self.model_or_pipe = model_or_pipe
+        self.temp = temp
         self.show_r1_thought = show_r1_thought
 
     def solve(self):
@@ -364,7 +366,7 @@ class PaperSolver:
                                                model_or_pipe=self.model_or_pipe,
                                                prompt=f"Given the following research topic {self.topic} and research plan: \n\n{self.plan}\n\nPlease come up with a search query to find relevant papers on arXiv. Respond only with the search query and nothing else. This should be a string that will be used to find papers with semantically similar content. {att_str}", 
                                                system_prompt=f"You are a research paper finder. You must find papers for the section {_section}. Query must be text. Nothing else.", 
-                                               temp=0.6,
+                                               temp=self.temp,
                                                show_r1_thought=self.show_r1_thought)
                     search_query.replace('"', '')
                     papers = arx.find_papers_by_str(query=search_query, N=10)
@@ -388,7 +390,7 @@ class PaperSolver:
                     model_or_pipe=self.model_or_pipe,
                     system_prompt=self.system_prompt(section=_section),
                     prompt=f"{prompt}",
-                    temp=0.6,
+                    temp=self.temp,
                     show_r1_thought=self.show_r1_thought)
                 model_resp = self.clean_text(model_resp)
                 if _section == "scaffold":
@@ -417,10 +419,10 @@ class PaperSolver:
             print("$"*10, f"SCAFFOLD [{_section}] CREATED", "$"*10)
         print("$"*10, "SCAFFOLD CREATED", "$"*10)
         score, _, _ = get_score(self.plan, 
-                                             "\n".join(latex_lines), 
-                                             platform=self.platform, 
-                                             model_or_pipe=self.model_or_pipe, 
-                                             show_r1_thought=self.show_r1_thought)
+                                "\n".join(latex_lines), 
+                                platform=self.platform, 
+                                model_or_pipe=self.model_or_pipe, 
+                                show_r1_thought=self.show_r1_thought)
         print(f"$$$ Score: {score}")
         return latex_lines, prev_latex_ret, score
 

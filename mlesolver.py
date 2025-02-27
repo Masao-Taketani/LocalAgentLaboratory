@@ -226,7 +226,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
 
 
 class MLESolver:
-    def __init__(self, dataset_code, platform, model_or_pipe, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None):
+    def __init__(self, dataset_code, platform, model_or_pipe, temp, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.dataset_code = dataset_code
@@ -234,6 +234,7 @@ class MLESolver:
         else: self.plan = plan
         self.platform = platform
         self.model_or_pipe = model_or_pipe
+        self.temp = temp
         self.show_r1_thought = show_r1_thought
         self.verbose = False
         self.max_codes = 2
@@ -288,7 +289,7 @@ class MLESolver:
                 model_or_pipe=self.model_or_pipe,
                 system_prompt=self.system_prompt(),
                 prompt=f"{err_hist}\nYou should now use ```REPLACE to create initial code to solve the challenge. Now please enter the ```REPLACE command below:\n ", 
-                temp=0.6,
+                temp=self.temp,
                 show_r1_thought=self.show_r1_thought)
             model_resp = self.clean_text(model_resp)
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)
