@@ -1,7 +1,8 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
-ENV TZ=Asia/Tokyo
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# Remove #s for the two lines below after setting your time zone, so that you can avoid an interruption in the process of building the environment.
+#ENV TZ={your time zone here}
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update && apt-get install -y \
     screen \

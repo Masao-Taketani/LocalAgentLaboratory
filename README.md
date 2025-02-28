@@ -84,6 +84,9 @@ If you'd like to check thought processes when you use one of the DeepSeek R1 mod
 
 ## Environmental Setup
 
+> [!Tip]
+> Remove #s for the [two lines](Dockerfile#L4) after setting your time zone, so that you can avoid an interruption in the process of building the environment.
+
 Follow the installation steps below.
 ```
 (Type the following commands at host)
