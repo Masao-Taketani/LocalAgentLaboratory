@@ -53,9 +53,10 @@ I have made some modifications in this repo from the original one.
 - Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details
 
 > [!Tip]
-> [examples](examples/) were created using end-to-end autonomous mode, which means no human intervention. In order to get better results, one way to do it is include human intervention in some or all of the phases, which is called co-pilot mode in the paper.
+> [examples](examples/) were created using end-to-end autonomous mode, which means no human intervention from start to finish. In order to get better results, one way to do it is to include human intervention in some or all of the phases, which is called co-pilot mode in the paper. For more details, please check [Co-Pilot Mode](#co-pilot-mode).
+
 > [!Tip]
-> Other ways to get better results are adjusting temperature, prompts, various trials, and so on. For more details, please check 
+> Other ways to get better results are to adjust temperature and prompts, conduct various trials with saved states, and so on. For more details, please check [Tips for Better Research Outcomes](#tips-for-better-research-outcomes).
 
 ## 📖 Overview
 
