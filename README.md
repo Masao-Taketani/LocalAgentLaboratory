@@ -1,7 +1,7 @@
 # Local Agent Laboratory: Using Local LLM Agents as Research Assistants
 
 <p align="center">
-  <img src="media/LocalAgentLabMainPic.jpg" alt="Demonstration of the flow of AgentClinic" style="width: 50%;">
+  <img src="media/LocalAgentLabMainPic.jpg" alt="Demonstration of the flow of AgentClinic" style="width: 60%;">
 </p>
 
 
