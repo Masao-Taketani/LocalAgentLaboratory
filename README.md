@@ -1,5 +1,32 @@
 # Local Agent Laboratory: Using Local LLM Agents as Research Assistants
 
+<p align="center">
+  <img src="media/AgentLabWF.png" alt="Demonstration of the flow of AgentClinic" style="width: 99%;">
+</p>
+
+
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [Modification](#modification)
+   - [Docker](#docker)
+   - [Anaconda](#anaconda)
+3. [Overview](#overview)
+   - [How Does Local Agent Laboratory Work?](#-how-does-local-agent-laboratory-work)
+   - [Supported Platforms and Models](#supported-platforms-and-models) 
+4. [Environmental Setup](#environmental-setup)
+5. [Program Execution](#program-execution)
+   - [Now run Local Agent Laboratory!](#now-run-local-agent-laboratory)
+   - [Co-Pilot Mode](#co-pilot-mode)
+6. [Tips for Better Research Outcomes](#tips-for-better-research-outcomes)
+   - [[Tip #0] 🌡️ Adjust proper temperature for each phase! 🌡️](#tip-0-️-adjust-proper-temperature-for-each-phase-️)
+   - [[Tip #1] 📝 Make sure to write extensive notes! 📝](#tip-1--make-sure-to-write-extensive-notes-)
+   - [[Tip #2] 🚀 Using more powerful models generally leads to better research 🚀](#tip-2--using-more-powerful-models-generally-leads-to-better-research-)
+   - [[Tip #3] ✅ You can load previous saves from checkpoints ✅](#tip-3--you-can-load-previous-saves-from-checkpoints-)
+   - [[Tip #4] 🈯 If you are running in a language other than English 🈲](#tip-4--if-you-are-running-in-a-language-other-than-english-)
+   - [[Tip #5] 🌟 There is a lot of room for improvement 🌟](#tip-5--there-is-a-lot-of-room-for-improvement-)
+7. [📜 License](#-license)
+8. [Reference](#reference)
 
 
 ## Introduction
@@ -19,11 +46,16 @@ investigation purposes.
 
 ## Modification
 I have made some modifications in this repo from the original one.
-- Enable you to use local LLMs, which includes DeepSeek R1 models, instead of cloud ones
+- Enable you to use local LLMs, which includes **DeepSeek R1** models, instead of cloud ones
 - Fixed some prompts for clearer instructions
-- Made arguments and some parameters configurable using a JSON config file
+- Made arguments and some parameters configurable using a JSON config file. For details, please check [config.json](config.json)
 - Made clear the import dependencies because the original code frequently uses `import *`, which is ambiguous and not recommended
 - Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details
+
+> [!Tip]
+> [examples](examples/) were created using end-to-end autonomous mode, which means no human intervention. In order to get better results, one way to do it is include human intervention in some or all of the phases, which is called co-pilot mode in the paper.
+> [!Tip]
+> Other ways to get better results are adjusting temperature, prompts, various trials, and so on. For more details, please check 
 
 ## 📖 Overview
 
@@ -67,7 +99,9 @@ ollama pull [ollama model name]
 ```
 
 
-5. **Now run Local Agent Laboratory!**
+## Program Execution
+
+### Now run Local Agent Laboratory!
 
 Execute the following command. As for `[your config path]`, please refer to [config.json](config.json).
 ```
@@ -76,7 +110,7 @@ python ai_lab_repo.py --config_path [your config path]
 
 ### Co-Pilot Mode
 
-If you would like to do co-pilot mode, modify the provided config file. Please refer to [config.json](config.json#L14).
+If you would like to do co-pilot mode, modify the provided config file. You can intervene any phase(s) you want. In order to do that, modify [here](config.json#L14).
 
 
 ## Tips for Better Research Outcomes
