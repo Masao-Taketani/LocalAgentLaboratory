@@ -56,7 +56,7 @@ I have made some modifications in this repo from the original one.
 - Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details
 
 > [!Tip]
-> [examples](examples/) were created using end-to-end autonomous mode, which means no human intervention from start to finish. In order to get better results, one way to do it is to include human intervention in some or all of the phases, which is called co-pilot mode in the paper. For more details, please check [Co-Pilot Mode](#co-pilot-mode).
+> The [examples](examples/) were created using end-to-end autonomous mode, which means no human intervention from start to finish. In order to get better results, one way to do it is to include human intervention in some or all of the phases, which is called co-pilot mode in the paper. For more details, please check [Co-Pilot Mode](#co-pilot-mode).
 
 > [!Tip]
 > Other ways to get better results are to adjust temperature and prompts, conduct various trials with saved states, and so on. For more details, please check [Tips for Better Research Outcomes](#tips-for-better-research-outcomes).
@@ -138,7 +138,7 @@ As far as I've experimented, I can say that performance of the same model coming
 
 #### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
 
-Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are the things that I've found so far. So, if things don't work out, please try this tip. By the way, the best configuration I've found when it comes to model selection, it is written [here](config.json#L26).
+Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are the things that I've found so far. So, if things don't work out for your case, please try this tip. By the way, the best configuration I've found when it comes to model selections, it is written [here](config.json#L26).
 
 -----
 
