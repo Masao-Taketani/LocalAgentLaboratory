@@ -9,8 +9,6 @@
 
 1. [Introduction](#introduction)
 2. [Modification](#modification)
-   - [Docker](#docker)
-   - [Anaconda](#anaconda)
 3. [Overview](#overview)
    - [How Does Local Agent Laboratory Work?](#-how-does-local-agent-laboratory-work)
    - [Supported Platforms and Models](#supported-platforms-and-models) 
@@ -19,12 +17,16 @@
    - [Now run Local Agent Laboratory!](#now-run-local-agent-laboratory)
    - [Co-Pilot Mode](#co-pilot-mode)
 6. [Tips for Better Research Outcomes](#tips-for-better-research-outcomes)
-   - [[Tip #0] 🌡️ Adjust proper temperature for each phase! 🌡️](#tip-0-️-adjust-proper-temperature-for-each-phase-️)
-   - [[Tip #1] 📝 Make sure to write extensive notes! 📝](#tip-1--make-sure-to-write-extensive-notes-)
-   - [[Tip #2] 🚀 Using more powerful models generally leads to better research 🚀](#tip-2--using-more-powerful-models-generally-leads-to-better-research-)
-   - [[Tip #3] ✅ You can load previous saves from checkpoints ✅](#tip-3--you-can-load-previous-saves-from-checkpoints-)
-   - [[Tip #4] 🈯 If you are running in a language other than English 🈲](#tip-4--if-you-are-running-in-a-language-other-than-english-)
-   - [[Tip #5] 🌟 There is a lot of room for improvement 🌟](#tip-5--there-is-a-lot-of-room-for-improvement-)
+   - [Regarding Local LLMs](#regarding-local-llms)
+      - [[Tip #1] 🌡️ Adjust proper temperature for each phase! 🌡️](#tip-0-️-adjust-proper-temperature-for-each-phase-️)
+      - [[Tip #2] 🤖 Hugging Face over Ollama! 🤖](#tip-2--hugging-face-over-ollama-)
+      - [[Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖](#tip-3--qwen25-72b-instruct-for-non-coding-and-deepseek-r1-distill-llama-70b-for-coding-phases-)
+   - [Regarding LLMs Overvall](#regarding-llms-overvall)
+      - [[Tip #4] 📝 Make sure to write extensive notes! 📝](#tip-1--make-sure-to-write-extensive-notes-)
+      - [[Tip #5] 🚀 Using more powerful models generally leads to better research 🚀](#tip-2--using-more-powerful-models-generally-leads-to-better-research-)
+      - [[Tip #6] ✅ You can load previous saves from checkpoints ✅](#tip-3--you-can-load-previous-saves-from-checkpoints-)
+      - [[Tip #7] 🈯 If you are running in a language other than English 🈲](#tip-4--if-you-are-running-in-a-language-other-than-english-)
+      - [[Tip #8] 🌟 There is a lot of room for improvement 🌟](#tip-5--there-is-a-lot-of-room-for-improvement-)
 7. [📜 License](#-license)
 8. [Reference](#reference)
 
@@ -50,6 +52,7 @@ I have made some modifications in this repo from the original one.
 - Fixed some prompts for clearer instructions
 - Made arguments and some parameters configurable using a JSON config file. For details, please check [config.json](config.json)
 - Made clear the import dependencies because the original code frequently uses `import *`, which is ambiguous and not recommended
+- Created [Dockerfile](Dockerfile) in order to locally and efficiently build a development environment. For details, please check [Environmental Setup](#environmental-setup)
 - Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details
 
 > [!Tip]
@@ -119,13 +122,29 @@ If you would like to do co-pilot mode, modify the provided config file. You can 
 
 ## Tips for Better Research Outcomes
 
-#### [Tip #0] 🌡️ Adjust proper temperature for each phase! 🌡️
+### Regarding Local LLMs
+
+#### [Tip #1] 🌡️ Adjust proper temperature for each phase! 🌡️
 
 Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, adjusting temperature is crucial. As I have experienced several times during experiments with this repo, I have encountered so many errors especially when LLMs are dealing with writing code and paper. Often times, by adjusting temperature for those phases would work well although intial setting of temperature would not. As I said, `data preparation`, `running experiments`, and `report writing` phases are the most notorious ones! So, be patient, and conduct grid search or whatever you feel like. For reference, I have tried temperature from 0.0 to 1.0. It sometime worked and sometime not. So, see it for yourself! You can adjust each temperature [here](config.json#L36).
 
 -----
 
-#### [Tip #1] 📝 Make sure to write extensive notes! 📝
+#### [Tip #2] 🤖 Hugging Face over Ollama! 🤖
+
+As far as I've experimented, I can say that performance of the same model coming from `huggingface` platform is better than `ollama` one. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best Qwen2.5 model, which is non-quantized, available from Ollama) from `ollama` model. For more details, what I meant here is that one model from `ollama` does not follow given instructions where the same model from `huggingface` correctly follows them. So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`.
+
+-----
+
+#### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
+
+Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are things that I've found so far. So, if things don't work out, please try this tip. By the way, the best configuration I've found when it comes to model selection, it is written [here](config.json#L26).
+
+-----
+
+### Regarding LLMs Overvall
+
+#### [Tip #4] 📝 Make sure to write extensive notes! 📝
 
 **Writing extensive notes is important** for helping your agent understand what you're looking to accomplish in your project, as well as any style preferences. Notes can include any experiments you want the agents to perform, providing API keys, certain plots or figures you want included, or anything you want the agent to know when performing research.
 
@@ -133,7 +152,7 @@ This is also your opportunity to let the agent know **what compute resources it 
 
 In order to add notes, you must modify the [task_notes_LLM](ai_lab_repo.py#L694) structure inside of `ai_lab_repo.py`. 
 
-#### [Tip #2] 🚀 Using more powerful models generally leads to better research 🚀
+#### [Tip #5] 🚀 Using more powerful models generally leads to better research 🚀
 
 When conducting research, **the choice of model can significantly impact the quality of results**. More powerful models tend to have higher accuracy, better reasoning capabilities, and better report generation. If computational resources allow, prioritize the use of advanced models such as Qwen2.5-72B-Instruct or similar state-of-the-art local LLMs.
 
@@ -143,20 +162,20 @@ When resources are limited, **optimize by fine-tuning smaller models** on your s
 
 -----
 
-#### [Tip #3] ✅ You can load previous saves from checkpoints ✅
+#### [Tip #6] ✅ You can load previous saves from checkpoints ✅
 
 **If you lose progress, or if a subtask fails, you can always load from a previous state.** All of your progress is saved by default in the `state_saves` variable, which stores each individual checkpoint. Just set `load_existing` as `true`, which can be found [here](config.json#L3), and pass your saved state [here](config.json#L6) when running `ai_lab_repo.py`
 
 -----
 
-#### [Tip #4] 🈯 If you are running in a language other than English 🈲
+#### [Tip #7] 🈯 If you are running in a language other than English 🈲
 
 If you are running Agent Laboratory in a language other than English, no problem, just make sure to provide a language flag to the agents to perform research in your preferred language. Note that we have not extensively studied running Local Agent Laboratory in other languages, so be sure to report any problems you encounter. You can adjust the language [here](config.json#L48).
 
 ----
 
 
-#### [Tip #5] 🌟 There is a lot of room for improvement 🌟
+#### [Tip #8] 🌟 There is a lot of room for improvement 🌟
 
 There is a lot of room to improve this codebase, so if you end up making changes and want to help the community, please feel free to share the changes you've made! We hope this tool helps you!
 
