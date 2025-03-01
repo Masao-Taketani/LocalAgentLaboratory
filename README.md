@@ -126,19 +126,19 @@ If you would like to do co-pilot mode, modify the provided config file. You can 
 
 #### [Tip #1] 🌡️ Adjust proper temperature for each phase! 🌡️
 
-Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, adjusting temperature is crucial. As I have experienced several times during experiments with this repo, I have encountered so many errors especially when LLMs are dealing with writing code and paper. Often times, by adjusting temperature for those phases would work well although intial setting of temperature would not. As I said, `data preparation`, `running experiments`, and `report writing` phases are the most notorious ones! So, be patient, and conduct grid search or whatever you feel like. For reference, I have tried temperature from 0.0 to 1.0. It sometime worked and sometime not. So, see it for yourself! You can adjust each temperature [here](config.json#L36).
+Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, adjusting temperature is crucial. As I have experienced several times during experiments with this repo, I have encountered so many errors especially when LLMs are dealing with writing code and paper. Oftentimes adjusting temperature for those phases would work well although intial setting of temperature would not. As I said, `data preparation`, `running experiments`, and `report writing` phases are the most notorious ones! So, be patient, and conduct grid search or whatever you feel like. For reference, I have tried temperature from 0.0 to 1.0. It sometime worked and sometime not. So, see it for yourself! You can adjust each temperature [here](config.json#L36).
 
 -----
 
 #### [Tip #2] 🤖 Hugging Face over Ollama! 🤖
 
-As far as I've experimented, I can say that performance of the same model coming from `huggingface` platform is better than `ollama` one. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best Qwen2.5 model, which is non-quantized, available from Ollama) from `ollama` model. For more details, what I meant here is that one model from `ollama` does not follow given instructions where the same model from `huggingface` correctly follows them. So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`.
+As far as I've experimented, I can say that performance of the same model coming from `huggingface` platform is better than `ollama` one. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best and non-quantized Qwen2.5 model available from Ollama) from `ollama`. For more details, what I meant here is that one model from `ollama` does not follow given instructions where the same model from `huggingface` correctly follows them. So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`.
 
 -----
 
 #### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
 
-Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are things that I've found so far. So, if things don't work out, please try this tip. By the way, the best configuration I've found when it comes to model selection, it is written [here](config.json#L26).
+Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are the things that I've found so far. So, if things don't work out, please try this tip. By the way, the best configuration I've found when it comes to model selection, it is written [here](config.json#L26).
 
 -----
 
