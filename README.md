@@ -4,6 +4,9 @@
   <img src="media/LocalAgentLabMainPic.jpg" alt="Demonstration of the flow of AgentClinic" style="width: 60%;">
 </p>
 
+> [!CAUTION]
+> As for [[Tip #2]](#tip-2--hugging-face-over-ollama-), I found out why the models from Hugging Face outperform the ones from Ollama with the current code. I use OpenAI API to use Ollama, but due to that, the context window size is fixed (with 2048). Please refer more details [here](https://github.com/ollama/ollama/blob/main/docs/openai.md#setting-the-context-size). So, I'm currently working on it to fix the issue. In the meantime, you should use `huggingface` platform in order to get accurate inference until I fix it.
+
 
 ## Table of Contents
 
