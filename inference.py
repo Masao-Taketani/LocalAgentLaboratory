@@ -1,28 +1,44 @@
 import time, tiktoken
 from openai import OpenAI
-import os, anthropic, json
+import os, json, subprocess
 from transformers import set_seed
 from transformers.pipelines.text_generation import TextGenerationPipeline
+import logging
 
 
-def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, max_length=131072):
+def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, 
+                max_length=None, num_ctx=None):
     if temp is None: temp = 1.0
     print('temp:', temp)
     for _ in range(tries):
         try:
             if platform == "ollama":
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ]
-
-                client = OpenAI(base_url='http://localhost:11434/v1/',
-                                api_key='ollama', # required but ignored
-                                )
-                completion = client.chat.completions.create(
-                    model=model_or_pipe, messages=messages, temperature=temp)
-                answer = completion.choices[0].message.content
-
+                # Disable OpenAI API since num_ctx cannot be adjusted. 
+                # For details, https://github.com/ollama/ollama/blob/main/docs/openai.md#setting-the-context-size
+                #messages = [
+                #    {"role": "system", "content": system_prompt},
+                #    {"role": "user", "content": prompt}
+                #]
+                #
+                #client = OpenAI(base_url='http://localhost:11434/v1/',
+                #                api_key='ollama', # required but ignored
+                #                )
+                #completion = client.chat.completions.create(
+                #    model=model_or_pipe, messages=messages, temperature=temp)
+                #answer = completion.choices[0].message.content
+                if num_ctx is None:
+                    num_ctx = 32768 if "qwen2.5" in model_or_pipe.lower() else 131072
+                system_prompt_dic = {"role": "system", "content": f"""{system_prompt}"""}
+                prompt_dic = {"role": "user", "content": f"""{prompt}"""}
+                system_prompt_json = json.dumps(system_prompt_dic)
+                prompt_json = json.dumps(prompt_dic)
+                messages = rf"""[{system_prompt_json}, {prompt_json}]"""
+                args = rf"""{{"model": "{model_or_pipe}", "messages": {messages}, "options": {{"num_ctx": {num_ctx}}}, "stream": false}}"""
+                with open("tmp_args.txt","w") as f:
+                    f.write(args)
+                command = ["curl", "http://localhost:11434/api/chat", "-d", "@tmp_args.txt"]
+                rlt = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                answer = json.loads(rlt.stdout)["message"]["content"]
             elif platform == "huggingface":
                 prompt = model_or_pipe.tokenizer.apply_chat_template(
                     [
@@ -35,6 +51,8 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
 
                 set_seed(0)
                 do_sample = True if temp != 0 else False
+                if max_length is None:
+                    max_length = 32768 if "qwen2.5" in model_or_pipe.tokenizer.name_or_path.lower() else 131072
                 response = model_or_pipe(prompt,
                                          do_sample=do_sample,
                                          temperature=temp,
@@ -57,6 +75,7 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
             return answer
         except Exception as e:
             print("Inference Exception:", e)
+            logging.exception("An unexpected error just happened.")
             time.sleep(timeout)
             continue
     raise Exception("Max retries: timeout")
