@@ -53,7 +53,8 @@ investigation purposes.
 I have made some modifications in this repo from the original one.
 - Enable you to use local LLMs, which includes **DeepSeek R1** models, instead of cloud ones
 - Fixed some prompts for clearer instructions
-- Made arguments and some parameters configurable using a JSON config file. For details, please check [config.json](config.json)
+- Made arguments and some crucial parameters configurable using a JSON config file. For details, please check [config.json](config.json)
+- Enable you to override arguments such as a model selection for each phase using the config file explained above even when you restart with a previously saved state file. The original repo does not allow that unless you modify the code since all the instance variables of `LaboratoryWorkflow` that contain those arguments are all set when the class is instantiated and are saved as part of the state files. Due to that, when you restart with one of those state files, the instance still uses the same arguments that were set when instantiated
 - Made clear the import dependencies because the original code frequently uses `import *`, which is ambiguous and not recommended
 - Created [Dockerfile](Dockerfile) in order to locally and efficiently build a development environment. For details, please check [Environmental Setup](#environmental-setup)
 - Include some examples that were created using Local LLMs. Please refer to [examples](examples/) directory for details

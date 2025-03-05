@@ -723,20 +723,22 @@ if __name__ == "__main__":
         load_path = cfg["load_existing_path"]
         if load_path is None:
             raise ValueError("Please provide path to load existing state.")
+            
         with open(load_path, "rb") as f:
             lab = pickle.load(f)
-            # Override instance variables of lab
-            lab.notes = task_notes_LLM
-            lab.platform = platform
-            lab.set_phase_models(agent_models)
-            lab.human_in_loop_flag = human_in_loop
-            lab.compile_pdf = compile_pdf
-            lab.num_papers_lit_review = num_papers_lit_review
-            lab.papersolver_max_steps = papersolver_max_steps
-            lab.mlesolver_max_steps = mlesolver_max_steps
-            lab.show_r1_thought = show_r1_thought
-            lab.out_dirpath = out_dirpath
-            lab = adjust_phase_status(lab, load_path)
+
+        # Override instance variables of lab
+        lab.notes = task_notes_LLM
+        lab.platform = platform
+        lab.set_phase_models(agent_models)
+        lab.human_in_loop_flag = human_in_loop
+        lab.compile_pdf = compile_pdf
+        lab.num_papers_lit_review = num_papers_lit_review
+        lab.papersolver_max_steps = papersolver_max_steps
+        lab.mlesolver_max_steps = mlesolver_max_steps
+        lab.show_r1_thought = show_r1_thought
+        lab.out_dirpath = out_dirpath
+        lab = adjust_phase_status(lab, load_path)
     else:
         lab = LaboratoryWorkflow(
             research_topic=research_topic,
