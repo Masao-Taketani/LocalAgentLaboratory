@@ -634,11 +634,14 @@ def adjust_phase_status(lab, load_path):
                 task_exist = True
                 break
     assert task_exist, f"task {load_path} does not exist. You need to specify correct pkl file."
+    break_outer_loop = False
     for _, subtasks in lab.phases:
         for subtask in subtasks:
             lab.phase_status[subtask] = True
-            if done_up_to_this_task == subtask: 
+            if done_up_to_this_task == subtask:
+                break_outer_loop = True
                 break
+        if break_outer_loop: break
     return lab
 
 
