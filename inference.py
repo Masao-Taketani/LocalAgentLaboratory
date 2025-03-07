@@ -6,6 +6,18 @@ from transformers.pipelines.text_generation import TextGenerationPipeline
 import logging
 
 
+think_model_keywords = ["deepseek-r1", "qwq"]
+
+def process_think_model_output(answer, show_thought):
+    thought, answer = answer.split("</think>")
+    answer = answer[2:]
+    if show_thought:
+        print("\n\n[Showing thought process STARTs here]")
+        print(thought.split("<think>")[1][1:]) if thought.startswith("<think>") else print(thought)
+        print("[Showing thought process ENDs here]\n\n")
+    return answer
+
+
 def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, 
                 max_length=None, num_ctx=None):
     if temp is None: temp = 1.0
@@ -60,17 +72,13 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                                          truncation=True
                 )
                 answer = response[0]["generated_text"][len(prompt):]
+                
             else:
                 raise ValueError(f"Platform {platform} is not supported.")
 
-            if (isinstance(model_or_pipe, str) and "deepseek-r1" in model_or_pipe.lower()) \
-            or (isinstance(model_or_pipe, TextGenerationPipeline) and "deepseek-r1" in model_or_pipe.tokenizer.name_or_path.lower()):
-                thought, answer = answer.split("</think>")
-                answer = answer[2:]
-                if show_r1_thought:
-                    print("\n\n[DeepSeek R1's thought process starts here]")
-                    print(thought.split("<think>")[1][1:])
-                    print("[DeepSeek R1's thought process ends here]\n\n")
+            if (isinstance(model_or_pipe, str) and any([keyword in model_or_pipe.lower() for keyword in think_model_keywords])) \
+            or (isinstance(model_or_pipe, TextGenerationPipeline) and any([keyword in model_or_pipe.tokenizer.name_or_path.lower() for keyword in think_model_keywords])):
+                answer = process_think_model_output(answer, show_r1_thought)
 
             return answer
         except Exception as e:
