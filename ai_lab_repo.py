@@ -13,6 +13,7 @@ from utils import extract_prompt, save_to_file, remove_figures, remove_directory
 from mlesolver import MLESolver
 from papersolver import PaperSolver
 from tools import ArxivSearch, HFDataSearch, execute_code
+from inference import THINK_MODEL_KEYWORDS
 
 
 DEFAULT_PLATFORM = "huggingface"
@@ -682,30 +683,18 @@ if __name__ == "__main__":
     ############################################################
     temps = cfg["temps"]
 
-    if platform == "ollama":
-        if "deepseek-r1" in agent_models["running experiments"]:
-            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
-        else:
-            call_model_prompt = f'from openai import OpenAI\nclient = OpenAI(base_url="http://localhost:11434/v1/", api_key="ollama")\ncompletion = client.chat.completions.create(model="{agent_models["running experiments"]}", messages=messages)\nanswer = completion.choices[0].message.content'
-    elif platform == "huggingface":
-        max_length = 131072
-        if "deepseek-r1" in agent_models["running experiments"]:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}", device_map="auto")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]\n_, answer = answer.split("</think>")\nanswer = answer[2:]'
-        else:
-            call_model_prompt = f'from transformers import pipeline\nimport torch\npipe = pipeline("text-generation", model="{agent_models["running experiments"]}", device_map="auto")\nprompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)\nresponse = pipe(prompt, do_sample=True, max_length={max_length}, truncation=True)\nanswer = response[0]["generated_text"][len(prompt):]'
-
     task_notes_LLM = [
         {"phases": ["plan formulation"],
          "note": f"You should come up with a plan for TWO experiments."},
 
         {"phases": ["plan formulation"],
-         "note": f'Please plan to use {agent_models["data preparation"]} for your data preparation and {agent_models["running experiments"]} for your experiments if you decide to use a LLM on those phases.'},
+         "note": f'Please plan to use {agent_models["data preparation"]} as a model for your data preparation and {agent_models["running experiments"]} as a model for your experiments if you decide to use a LLM on those phases.'},
 
         {"phases": ["data preparation"],
-         "note": f'Please use {agent_models["data preparation"]} if you decide to use a LLM on this phase.'},
+         "note": f'Please use {agent_models["data preparation"]} as a model if you decide to use a LLM on this phase.'},
 
         {"phases": ["running experiments"],
-         "note": f'Please use {agent_models["running experiments"]} if you decide to use a LLM on this phase. If you do so, Use the following code to inference {agent_models["running experiments"]}: \n{call_model_prompt}\nHowever, do not use too many inferences.'},
+         "note": f'Please use {agent_models["running experiments"]} as a model if you decide to use a LLM on this phase.'},
 
         {"phases": ["running experiments"],
          "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
@@ -719,7 +708,7 @@ if __name__ == "__main__":
 
     task_notes_LLM.append(
         {"phases": ["literature review", "plan formulation", "data preparation", "running experiments", "results interpretation", "report writing", "report refinement"],
-        "note": f'You should always write in the following language to converse and to write the report {cfg["language"]}'},
+         "note": f'You should always write in the following language to converse and to write the report.\nLanguage to use: {cfg["language"]}'},
     )
 
     if load_existing:
@@ -741,6 +730,7 @@ if __name__ == "__main__":
         lab.mlesolver_max_steps = mlesolver_max_steps
         lab.show_r1_thought = show_r1_thought
         lab.out_dirpath = out_dirpath
+        lab.temps = temps
         lab = adjust_phase_status(lab, load_path)
     else:
         lab = LaboratoryWorkflow(
