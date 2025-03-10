@@ -4,12 +4,6 @@
   <img src="media/LocalAgentLabMainPic.jpg" alt="Demonstration of the flow of AgentClinic" style="width: 60%;">
 </p>
 
-~~> [!CAUTION]~~
-~~> As for [[Tip #2]](#tip-2--hugging-face-over-ollama-), I found out why the models from Hugging Face outperform the ones from Ollama with the current code. I use OpenAI API to use Ollama, but due to that, the context window size is fixed (with 2048). Please refer more details [here](https://github.com/ollama/ollama/blob/main/docs/openai.md#setting-the-context-size). So, I'm currently working on it to fix the issue. In the meantime, you should use `huggingface` platform in order to get accurate inference until I fix it.~~
-
-The above struck through part is fixed now. I will check whether [[Tip #2]](#tip-2--hugging-face-over-ollama-) still holds true.
-
-
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -136,10 +130,9 @@ Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, a
 
 -----
 
-#### [Tip #2] 🤖 Hugging Face over Ollama! 🤖
+#### [Tip #2] 🤖 Hugging Face for accuracy, speed for Ollama! 🤖
 
-As far as I've experimented, I can say that performance of the same model coming from `huggingface` platform is better than `ollama` one. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best and non-quantized Qwen2.5 model available from Ollama) from `ollama`. For more details, what I meant here is that one model from `ollama` does not follow given instructions where the same model from `huggingface` correctly follows them. So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`.
-
+As far as I've experimented, I can say that performance of models coming from `huggingface` platform are better than ones from `ollama`. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best and non-quantized Qwen2.5 model available from Ollama) from `ollama`. What I exactly meant here is that models from `ollama` does not follow given instructions as much as the ones from `huggingface`. The reason seems to come from the fact that even the most accurate models from Ollama are half-precision (FP16). So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`. As for inference speed, ones from Ollama perform pretty well especially compared to the counterparts from Hugging Face. Thus, if you want to save some machine power, use Ollama models for faster inference where you don't need precise execution such as phases that can only be done with conversations between agents.
 -----
 
 #### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
