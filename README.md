@@ -133,6 +133,7 @@ Since local LLMs' capabilities are not on par with cloud LLMs' such as GPT-4o, a
 #### [Tip #2] 🤖 Hugging Face for accuracy, speed for Ollama! 🤖
 
 As far as I've experimented, I can say that performance of models coming from `huggingface` platform are better than ones from `ollama`. For example, `Qwen/Qwen2.5-72B-Instruct` from `huggingface` is better than `qwen2.5:72b-instruct-fp16` (which presumably is the best and non-quantized Qwen2.5 model available from Ollama) from `ollama`. What I exactly meant here is that models from `ollama` does not follow given instructions as much as the ones from `huggingface`. The reason seems to come from the fact that even the most accurate models from Ollama are half-precision (FP16). So, unless you have strict computational restrictions, I suggest you use models from `huggingface`, preferably models as capable as (or even better than) `Qwen/Qwen2.5-72B-Instruct`. As for inference speed, ones from Ollama perform pretty well especially compared to the counterparts from Hugging Face. Thus, if you want to save some machine power, use Ollama models for faster inference where you don't need precise execution such as phases that can only be done with conversations between agents.
+
 -----
 
 #### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
