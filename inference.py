@@ -78,7 +78,6 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
 
             if (isinstance(model_or_pipe, str) and any([keyword in model_or_pipe.lower() for keyword in THINK_MODEL_KEYWORDS])) \
             or (isinstance(model_or_pipe, TextGenerationPipeline) and any([keyword in model_or_pipe.tokenizer.name_or_path.lower() for keyword in THINK_MODEL_KEYWORDS])):
-                print("debug answer: ", answer)
                 answer = process_think_model_output(answer, show_thought)
 
             return answer
