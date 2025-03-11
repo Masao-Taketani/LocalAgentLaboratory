@@ -157,7 +157,7 @@ class Edit(Command):
             return False, (None, None, None, None, None)
 
 
-def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_r1_thought, attempts=3):
+def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_thought, attempts=3):
     e = str()
     for _attempt in range(attempts):
         try:
@@ -175,7 +175,7 @@ def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_r1
                     f"The following text is the research code that the machine learning engineer produced: \n{code}\n\n"
                     f"The following is the output from the code: {code_return}\n\n"), 
                 temp=0.6,
-                show_r1_thought=show_r1_thought)
+                show_thought=show_thought)
             performance = extract_prompt(text=scoring, word="SCORE")
             performance = float(performance)
             return performance, f"The performance of your submission is: {performance}", True
@@ -184,7 +184,7 @@ def get_score(outlined_plan, code, code_return, platform, model_or_pipe, show_r1
     return 0, e
 
 
-def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
+def code_repair(code, error, ctype, platform, model_or_pipe, show_thought):
     if ctype == "replace":
         repair_sys = (
             "You are an automated code repair tool.\n"
@@ -199,7 +199,7 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
             temp=0.6,
-            show_r1_thought=show_r1_thought)
+            show_thought=show_thought)
         return extract_prompt(model_resp, "python")
     elif ctype == "edit":
         repair_sys = (
@@ -221,12 +221,12 @@ def code_repair(code, error, ctype, platform, model_or_pipe, show_r1_thought):
             system_prompt=repair_sys,
             prompt=f"Provided here is the error: {error}\n\nProvided below is the code:\n\n{code}", 
             temp=0.2,
-            show_r1_thought=show_r1_thought)
+            show_thought=show_thought)
         return model_resp
 
 
 class MLESolver:
-    def __init__(self, dataset_code, platform, model_or_pipe, temp, show_r1_thought, notes=None, max_steps=10, insights=None, plan=None):
+    def __init__(self, dataset_code, platform, model_or_pipe, temp, show_thought, notes=None, max_steps=10, insights=None, plan=None):
         if notes is None: self.notes = []
         else: self.notes = notes
         self.dataset_code = dataset_code
@@ -235,7 +235,7 @@ class MLESolver:
         self.platform = platform
         self.model_or_pipe = model_or_pipe
         self.temp = temp
-        self.show_r1_thought = show_r1_thought
+        self.show_thought = show_thought
         self.verbose = False
         self.max_codes = 2
         self.st_hist_len = 2
@@ -290,7 +290,7 @@ class MLESolver:
                 system_prompt=self.system_prompt(),
                 prompt=f"{err_hist}\nYou should now use ```REPLACE to create initial code to solve the challenge. Now please enter the ```REPLACE command below:\n ", 
                 temp=self.temp,
-                show_r1_thought=self.show_r1_thought)
+                show_thought=self.show_thought)
             model_resp = self.clean_text(model_resp)
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)
             print(f"@@@ INIT ATTEMPT: Command Exec // Attempt {num_attempts}: ", str(cmd_str).replace("\n", " | "))
@@ -314,7 +314,7 @@ class MLESolver:
                 system_prompt=self.system_prompt(),
                 prompt=f"The following is your history:{self.history_str()}\n\n{cmd_app_str}Now please enter a command: ", 
                 temp=1.0,
-                show_r1_thought=self.show_r1_thought)
+                show_thought=self.show_thought)
             model_resp = self.clean_text(model_resp)
             self.code_lines = copy(random.choice(self.best_codes)[0])
             cmd_str, code_lines, prev_code_ret, should_execute_code, score = self.process_command(model_resp)
@@ -355,7 +355,7 @@ class MLESolver:
                            system_prompt=syst, 
                            platform=self.platform, 
                            model_or_pipe=self.model_or_pipe, 
-                           show_r1_thought=self.show_r1_thought)
+                           show_thought=self.show_thought)
 
     def process_command(self, model_resp):
         """
@@ -391,12 +391,12 @@ class MLESolver:
                                 code_err = f"Return from executing code: {cmd_return[2]}"
                                 if cmd_return[0]:  # if success
                                     code_lines = copy(cmd_return[1])
-                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], self.platform, self.model_or_pipe, self.show_r1_thought)
+                                    score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), cmd_return[2], self.platform, self.model_or_pipe, self.show_thought)
                                     if is_valid:
                                         failed = False
                                         break
                                     code_err += f"\nReturn from executing code on real test set {cmd_str}"
-                            repaired_code = code_repair(model_resp, code_err, ctype="edit", platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                            repaired_code = code_repair(model_resp, code_err, ctype="edit", platform=self.platform, model_or_pipe=self.model_or_pipe, show_thought=self.show_thought)
                             model_resp = repaired_code
                             print(f"     * Attempting repair // try {_tries}*")
                         if failed:
@@ -420,12 +420,12 @@ class MLESolver:
                             code_err = f"Return from executing code: {args[1]}"
                             if success:
                                 code_lines = copy(args[0])
-                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_r1_thought)
+                                score, cmd_str, is_valid = get_score(self.plan, "\n".join(code_lines), args[1], self.platform, self.model_or_pipe, self.show_thought)
                                 if is_valid:
                                     failed = False
                                     break
                                 code_err += f"\nReturn from executing code on real test set {cmd_str}"
-                            repaired_code = code_repair(extract_prompt(model_resp, "REPLACE", ), code_err, ctype="replace", platform=self.platform, model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought)
+                            repaired_code = code_repair(extract_prompt(model_resp, "REPLACE", ), code_err, ctype="replace", platform=self.platform, model_or_pipe=self.model_or_pipe, show_thought=self.show_thought)
                             repaired_code = f"```REPLACE\n{repaired_code}\n```"
                             model_resp = repaired_code
                             print(f"     * Attempting repair // try {_tries}*")

@@ -6,7 +6,7 @@ from transformers.pipelines.text_generation import TextGenerationPipeline
 import logging
 
 
-think_model_keywords = ["deepseek-r1", "qwq"]
+THINK_MODEL_KEYWORDS = ["deepseek-r1", "qwq"]
 
 def process_think_model_output(answer, show_thought):
     thought, answer = answer.split("</think>")
@@ -18,7 +18,7 @@ def process_think_model_output(answer, show_thought):
     return answer
 
 
-def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_r1_thought=False, 
+def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout=5.0, temp=None, show_thought=False, 
                 max_length=None, num_ctx=None):
     if temp is None: temp = 1.0
     print('temp:', temp)
@@ -76,9 +76,10 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
             else:
                 raise ValueError(f"Platform {platform} is not supported.")
 
-            if (isinstance(model_or_pipe, str) and any([keyword in model_or_pipe.lower() for keyword in think_model_keywords])) \
-            or (isinstance(model_or_pipe, TextGenerationPipeline) and any([keyword in model_or_pipe.tokenizer.name_or_path.lower() for keyword in think_model_keywords])):
-                answer = process_think_model_output(answer, show_r1_thought)
+            if (isinstance(model_or_pipe, str) and any([keyword in model_or_pipe.lower() for keyword in THINK_MODEL_KEYWORDS])) \
+            or (isinstance(model_or_pipe, TextGenerationPipeline) and any([keyword in model_or_pipe.tokenizer.name_or_path.lower() for keyword in THINK_MODEL_KEYWORDS])):
+                print("debug answer: ", answer)
+                answer = process_think_model_output(answer, show_thought)
 
             return answer
         except Exception as e:

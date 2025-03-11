@@ -21,7 +21,7 @@ DEFAULT_LLM_BACKBONE = "Qwen/Qwen2.5-72B-Instruct"
 
 
 class LaboratoryWorkflow:
-    def __init__(self, research_topic, platform, agent_model_backbone, temps, show_r1_thought, out_dirpath, 
+    def __init__(self, research_topic, platform, agent_model_backbone, temps, show_thought, out_dirpath, 
                  max_steps=100, num_papers_lit_review=5, notes=list(), human_in_loop_flag=None, compile_pdf=True, 
                  mlesolver_max_steps=3, papersolver_max_steps=5):
         """
@@ -41,7 +41,7 @@ class LaboratoryWorkflow:
         self.platform = platform
         self.temps = temps
 
-        self.show_r1_thought = show_r1_thought
+        self.show_thought = show_thought
         self.out_dirpath = out_dirpath
 
         self.print_cost = True
@@ -252,7 +252,7 @@ class LaboratoryWorkflow:
         """
         subtask_name = "report refinement"
         reviews = self.reviewers.inference(self.phd.plan, self.phd.report, self.platform, self.model_or_pipe,
-                                           self.show_r1_thought)
+                                           self.show_thought)
         print("Reviews:", reviews)
         if self.human_in_loop_flag[subtask_name]:
             print(f"Provided are reviews from a set of three reviewers: {reviews}")
@@ -270,7 +270,7 @@ class LaboratoryWorkflow:
                 response = self.phd.inference(
                     research_topic=self.research_topic, phase=subtask_name, feedback=review_prompt, step=0, 
                     temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                    show_r1_thought=self.show_r1_thought, notes=self.notes)
+                    show_thought=self.show_thought, notes=self.notes)
             if len(response) == 0:
                 raise Exception("Model did not respond")
             response = response.lower().strip()[0]
@@ -294,7 +294,7 @@ class LaboratoryWorkflow:
         self.reference_papers = []
         # instantiate paper-solver
         solver = PaperSolver(platform=self.platform, model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name], 
-                             show_r1_thought=self.show_r1_thought, notes=report_notes, 
+                             show_thought=self.show_thought, notes=report_notes, 
                              max_steps=self.papersolver_max_steps, plan=lab.phd.plan, 
                              exp_code=lab.phd.results_code, exp_results=lab.phd.exp_results, 
                              insights=lab.phd.interpretation, lit_review=lab.phd.lit_review, 
@@ -313,7 +313,7 @@ class LaboratoryWorkflow:
             retry = self.human_in_loop(subtask_name, report)
             if retry: return retry
         self.set_agent_attr("report", report)
-        readme = self.professor.generate_readme(self.platform, self.model_or_pipe, self.show_r1_thought)
+        readme = self.professor.generate_readme(self.platform, self.model_or_pipe, self.show_thought)
         save_to_file(os.path.join(self.out_dirpath, "research_dir"), "README.md", readme)
         save_to_file(os.path.join(self.out_dirpath, "research_dir"), "report.txt", report)
         self.reset_agents()
@@ -331,7 +331,7 @@ class LaboratoryWorkflow:
         for _i in range(max_tries):
             resp = self.postdoc.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
                                           temp=self.temps[subtask_name], platform=self.platform, 
-                                          model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                                          model_or_pipe=self.model_or_pipe, show_thought=self.show_thought, 
                                           notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
@@ -351,7 +351,7 @@ class LaboratoryWorkflow:
                 return False
             resp = self.phd.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
                                       temp=self.temps[subtask_name], platform=self.platform, 
-                                      model_or_pipe=self.model_or_pipe, show_r1_thought=self.show_r1_thought, 
+                                      model_or_pipe=self.model_or_pipe, show_thought=self.show_thought, 
                                       notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
@@ -373,7 +373,7 @@ class LaboratoryWorkflow:
         # instantiate mle-solver
         solver = MLESolver(dataset_code=self.ml_engineer.dataset_code, platform=self.platform, 
                            model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name], 
-                           show_r1_thought=self.show_r1_thought, notes=experiment_notes, 
+                           show_thought=self.show_thought, notes=experiment_notes, 
                            insights=self.ml_engineer.lit_review_sum, max_steps=self.mlesolver_max_steps, 
                            plan=self.ml_engineer.plan)
         # run initialization for solver
@@ -419,7 +419,7 @@ class LaboratoryWorkflow:
             resp = self.sw_engineer.inference(self.research_topic, subtask_name, 
                         feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", 
                         step=_i, temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                        show_r1_thought=self.show_r1_thought, notes=self.notes)
+                        show_thought=self.show_thought, notes=self.notes)
             swe_feedback = str()
             swe_dialogue = str()
             if "```DIALOGUE" in resp:
@@ -452,7 +452,7 @@ class LaboratoryWorkflow:
                 self.research_topic, subtask_name,
                 feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i, temp=self.temps[subtask_name], 
                 platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                show_r1_thought=self.show_r1_thought, notes=self.notes)
+                show_thought=self.show_thought, notes=self.notes)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
             ml_feedback = str()
             ml_dialogue = str()
@@ -489,7 +489,7 @@ class LaboratoryWorkflow:
             # inference postdoc to
             resp = self.postdoc.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i,
                                           platform=self.platform, model_or_pipe=self.model_or_pipe, temp=self.temps[subtask_name],
-                                          show_r1_thought=self.show_r1_thought, notes=self.notes)
+                                          show_thought=self.show_thought, notes=self.notes)
             if self.verbose: print("Postdoc: ", resp, "\n~~~~~~~~~~~")
             dialogue = str()
 
@@ -511,7 +511,7 @@ class LaboratoryWorkflow:
 
             resp = self.phd.inference(self.research_topic, subtask_name, feedback=dialogue, step=_i, 
                                       platform=self.platform, model_or_pipe=self.model_or_pipe,  temp=self.temps[subtask_name],
-                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
+                                      show_thought=self.show_thought, notes=self.notes)
             if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
 
             dialogue = str()
@@ -532,7 +532,7 @@ class LaboratoryWorkflow:
         # get initial response from PhD agent
         resp = self.phd.inference(self.research_topic, subtask_name, step=0, temp=self.temps[subtask_name], 
                                   platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                                  show_r1_thought=self.show_r1_thought, notes=self.notes)
+                                  show_thought=self.show_thought, notes=self.notes)
         if self.verbose: print(resp, "\n~~~~~~~~~~~")
         # iterate until max num tries to complete task is exhausted
         for _i in range(max_tries):
@@ -579,7 +579,7 @@ class LaboratoryWorkflow:
                 return False
             resp = self.phd.inference(self.research_topic, subtask_name, feedback=feedback, step=_i + 1, 
                                       temp=self.temps[subtask_name], platform=self.platform, model_or_pipe=self.model_or_pipe, 
-                                      show_r1_thought=self.show_r1_thought, notes=self.notes)
+                                      show_thought=self.show_thought, notes=self.notes)
             if self.verbose: print(resp, "\n~~~~~~~~~~~")
         raise Exception("Max tries during phase: Literature Review")
 
@@ -655,7 +655,7 @@ if __name__ == "__main__":
     platform = cfg["platform"]
     compile_pdf = cfg["compile_latex"]
     load_existing = cfg["load_existing"]
-    show_r1_thought = cfg["show_r1_thought"]
+    show_thought = cfg["show_thought"]
     num_papers_lit_review = cfg["num_papers_lit_review"]
     assert isinstance(num_papers_lit_review, int), "'num_papers_lit_review' must be a valid integer!"
     papersolver_max_steps = cfg["papersolver_max_steps"]
@@ -728,7 +728,7 @@ if __name__ == "__main__":
         lab.num_papers_lit_review = num_papers_lit_review
         lab.papersolver_max_steps = papersolver_max_steps
         lab.mlesolver_max_steps = mlesolver_max_steps
-        lab.show_r1_thought = show_r1_thought
+        lab.show_thought = show_thought
         lab.out_dirpath = out_dirpath
         lab.temps = temps
         lab = adjust_phase_status(lab, load_path)
@@ -739,7 +739,7 @@ if __name__ == "__main__":
             platform=platform,
             agent_model_backbone=agent_models,
             temps=temps,
-            show_r1_thought=show_r1_thought,
+            show_thought=show_thought,
             human_in_loop_flag=human_in_loop,
             compile_pdf=compile_pdf,
             num_papers_lit_review=num_papers_lit_review,

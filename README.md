@@ -18,7 +18,7 @@
 6. [Tips for Better Research Outcomes](#tips-for-better-research-outcomes)
    - [Regarding Local LLMs](#regarding-local-llms)
       - [[Tip #1] 🌡️ Adjust proper temperature for each phase! 🌡️](#tip-1-️-adjust-proper-temperature-for-each-phase-️)
-      - [[Tip #2] 🤖 Hugging Face over Ollama! 🤖](#tip-2--hugging-face-over-ollama-)
+      - [[Tip #2] 🤖 Hugging Face for accuracy, speed for Ollama! 🤖](#tip-2--hugging-face-for-accuracy-speed-for-ollama-)
       - [[Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖](#tip-3--qwen25-72b-instruct-for-non-coding-and-deepseek-r1-distill-llama-70b-for-coding-phases-)
    - [Regarding LLMs Overvall](#regarding-llms-overvall)
       - [[Tip #4] 📝 Make sure to write extensive notes! 📝](#tip-4--make-sure-to-write-extensive-notes-)
@@ -79,10 +79,10 @@ I have made some modifications in this repo from the original one.
 </p>
 
 ### Supported Platforms and Models
-For this repo, any models from Ollama or Hugging Face, including the recently-announced DeepSeek R1 models, are supported to be used as local LLMs. 
-So, pick a platform either `huggingface` or `ollama` using [`--platform`](config.json#L24) argument. E.g. `--platform huggingface`.
+For this repo, any models from Ollama or Hugging Face, including the recently-announced thinking models, such as DeepSeek R1 and QwQ-32B, are supported to be used as local LLMs. 
+So, pick a platform either `huggingface` or `ollama` with [`platform`](config.json#L24) argument.
 
-If you'd like to check thought processes when you use one of the DeepSeek R1 models, set a flag named [`--show-r1-thought`](config.json#L46) as `true`. That way, you can see the thought processes in the console!
+If you'd like to check thought processes when you use one of the aforementioned thinking models, set a flag named [`show_thought`](config.json#L46) as `true`. That way, you can see the thought processes in your console!
 
 
 ## Environmental Setup
@@ -138,7 +138,7 @@ As far as I've experimented, I can say that performance of models coming from `h
 
 #### [Tip #3] 🤖 Qwen2.5-72B-Instruct for non-coding and DeepSeek-R1-Distill-Llama-70B for coding phases! 🤖
 
-Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding phases. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are the things that I've found so far. So, if things don't work out for your case, please try this tip. By the way, the best configuration I've found when it comes to model selections, it is written [here](config.json#L26).
+Also as far as I've experimented, `Qwen2.5-72B-Instruct` follows given instructions very well if the phases are non-coding, but not so much for coding ones. On the other hand, `DeepSeek-R1-Distill-Llama-70B` does good job when it comes to coding, but sometimes does not correctly follow non-coding instructions. Those are the things that I've found so far. So, if things don't work out for your case, please try this tip. By the way, as for the best configuration I've found when it comes to model selections, it is written [here](config.json#L26).
 
 -----
 

@@ -52,7 +52,7 @@ def extract_json_between_markers(llm_output):
 
 
 
-def get_score(outlined_plan, latex, platform, model_or_pipe, show_r1_thought=False, reviewer_type=None, attempts=3):
+def get_score(outlined_plan, latex, platform, model_or_pipe, show_thought=False, reviewer_type=None, attempts=3):
     e = str()
     for _attempt in range(attempts):
         try:
@@ -166,7 +166,7 @@ def get_score(outlined_plan, latex, platform, model_or_pipe, show_r1_thought=Fal
                     f"Outlined in the following text is the research plan that the machine learning engineer was tasked with building: {outlined_plan}\n\n"
                     f"The following text is the research latex that the model produced: \n{latex}\n\n"), 
                 temp=0.0,
-                show_r1_thought=show_r1_thought)
+                show_thought=show_thought)
             review_json = extract_json_between_markers(scoring)
 
             overall = int(review_json["Overall"]) / 10
@@ -206,15 +206,15 @@ class ReviewersAgent:
     def __init__(self):
         pass
 
-    def inference(self, plan, report, platform, model_or_pipe, show_r1_thought):
+    def inference(self, plan, report, platform, model_or_pipe, show_thought):
         reviewer_1 = "You are a harsh but fair reviewer and expect good experiments that lead to insights for the research topic."
-        review_1 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_1)
+        review_1 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_thought=show_thought, reviewer_type=reviewer_1)
 
         reviewer_2 = "You are a harsh and critical but fair reviewer who is looking for an idea that would be impactful in the field."
-        review_2 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_2)
+        review_2 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_thought=show_thought, reviewer_type=reviewer_2)
 
         reviewer_3 = "You are a harsh but fair open-minded reviewer that is looking for novel ideas that have not been proposed before."
-        review_3 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_r1_thought=show_r1_thought, reviewer_type=reviewer_3)
+        review_3 = get_score(outlined_plan=plan, latex=report, platform=platform, model_or_pipe=model_or_pipe, show_thought=show_thought, reviewer_type=reviewer_3)
 
         return f"Reviewer #1:\n{review_1}, \nReviewer #2:\n{review_2}, \nReviewer #3:\n{review_3}"
 
@@ -250,7 +250,7 @@ class BaseAgent:
         text = text.replace("```\n", "```")
         return text
 
-    def inference(self, research_topic, phase, step, platform, model_or_pipe, show_r1_thought, notes, feedback="", temp=None):
+    def inference(self, research_topic, phase, step, platform, model_or_pipe, show_thought, notes, feedback="", temp=None):
         sys_prompt = f"""You are {self.role_description()} \nTask instructions: {self.phase_prompt(phase)}\n{self.command_descriptions(phase)}"""#\n{self.example_command(phase)}
         context = self.context(phase)
         history_str = "\n".join([_[1] for _ in self.history])
@@ -263,7 +263,7 @@ class BaseAgent:
             f"Current Step #{step}, Phase: {phase}\n{complete_str}\n"
             f"[Objective] Your goal is to perform research on the following topic: {research_topic}\n"
             f"Feedback: {feedback}\nNotes: {notes_str}\nYour previous command was: {self.prev_comm}. Make sure your new output is very different.\nPlease produce a single command below:\n")
-        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, temp=temp, show_r1_thought=show_r1_thought)
+        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, temp=temp, show_thought=show_thought)
         print("^"*50, phase, "^"*50)
         model_resp = self.clean_text(model_resp)
         self.prev_comm = model_resp
@@ -307,13 +307,13 @@ class ProfessorAgent(BaseAgent):
         super().__init__(max_steps)
         self.phases = ["report writing"]
 
-    def generate_readme(self, platform, model_or_pipe, show_r1_thought):
+    def generate_readme(self, platform, model_or_pipe, show_thought):
         sys_prompt = f"""You are {self.role_description()} \n Here is the written paper \n{self.report}. Task instructions: Your goal is to integrate all of the knowledge, code, reports, and notes provided to you and generate a README.md for a github repository."""
         history_str = "\n".join([_[1] for _ in self.history])
         prompt = (
             f"""History: {history_str}\n{'~' * 10}\n"""
             f"Please produce the README below in markdown:\n")
-        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_r1_thought=show_r1_thought)
+        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_thought=show_thought)
         return model_resp.replace("```markdown", "")
 
     def context(self, phase):
@@ -624,13 +624,13 @@ class PhDStudentAgent(BaseAgent):
         else:
             return ""
 
-    def requirements_txt(self, platform, model_or_pipe, show_r1_thought):
+    def requirements_txt(self, platform, model_or_pipe, show_thought):
         sys_prompt = f"""You are {self.role_description()} \nTask instructions: Your goal is to integrate all of the knowledge, code, reports, and notes provided to you and generate a requirements.txt for a github repository for all of the code."""
         history_str = "\n".join([_[1] for _ in self.history])
         prompt = (
             f"""History: {history_str}\n{'~' * 10}\n"""
             f"Please produce the requirements.txt below in markdown:\n")
-        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_r1_thought=show_r1_thought)
+        model_resp = query_model(platform=platform, model_or_pipe=model_or_pipe, system_prompt=sys_prompt, prompt=prompt, show_thought=show_thought)
         return model_resp
 
     def example_command(self, phase):
