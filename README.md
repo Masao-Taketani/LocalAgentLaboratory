@@ -47,7 +47,7 @@ investigation purposes.
 
 ## Modification
 I have made some modifications in this repo from the original one.
-- Enable you to use local LLMs, which includes **DeepSeek R1** models, instead of cloud ones
+- Enable you to use local LLMs, which includes recently announced thinking models such as  [**DeepSeek R1**](https://github.com/deepseek-ai/DeepSeek-R1) or [**QwQ**](https://qwenlm.github.io/blog/qwq-32b/), instead of cloud ones
 - Fixed some prompts for clearer instructions
 - Made arguments and some crucial parameters configurable using a JSON config file. For details, please check [config.json](config.json)
 - Enable you to override arguments such as a model selection for each phase using the config file explained above even when you restart with a previously saved state file. The original repo does not allow that unless you modify the code since all the instance variables of `LaboratoryWorkflow` that contain those arguments are all set when the class is instantiated and are saved as part of the state files. Due to that, when you restart with one of those state files, the instance still uses the same arguments that were set when instantiated
@@ -72,7 +72,7 @@ I have made some modifications in this repo from the original one.
 
 ### 🔬 How Does Local Agent Laboratory Work?
 
-- Agent Laboratory consists of three primary phases that systematically guide the research process: (1) Literature Review, (2) Experimentation, and (3) Report Writing. During each phase, specialized agents driven by LLMs collaborate to accomplish distinct objectives, integrating external tools like arXiv, Hugging Face, Python, and LaTeX to optimize outcomes. This structured workflow begins with the independent collection and analysis of relevant research papers, progresses through collaborative planning and data preparation, and results in automated experimentation and comprehensive report generation. Details on specific agent roles and their contributions across these phases are discussed in the paper.
+- Local Agent Laboratory consists of three primary phases that systematically guide the research process: (1) Literature Review, (2) Experimentation, and (3) Report Writing. During each phase, specialized agents driven by LLMs collaborate to accomplish distinct objectives, integrating external tools like arXiv, Hugging Face, Python, and LaTeX to optimize outcomes. This structured workflow begins with the independent collection and analysis of relevant research papers, progresses through collaborative planning and data preparation, and results in automated experimentation and comprehensive report generation. Details on specific agent roles and their contributions across these phases are discussed in the paper.
 
 <p align="center">
   <img src="media/AgentLabWF.png" alt="Demonstration of the flow of AgentClinic" style="width: 99%;">

@@ -42,8 +42,8 @@
         "report writing":         0.2,
         "report refinement":      1.0
     },
-    // Whether to show thought processes. Only available when a deepseek-R1 model is used
-    "show_r1_thought": false,
+    // Whether to show thought processes. Only available when one of thinking models such as deepseek-R1 or QwQ is used
+    "show_thought": false,
     // Language to operate Agent Laboratory in.
     "language": "English",
     // Total number of papers to summarize in literature review stage
