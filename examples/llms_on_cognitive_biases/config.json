@@ -42,7 +42,7 @@
         "report writing":         0.2,
         "report refinement":      1.0
     },
-    // Whether to show thought processes. Only available when one of thinking models such as deepseek-R1 or QwQ is used
+    // Whether to show thought processes. Only available when one of reasoning models such as deepseek-R1 or QwQ is used
     "show_thought": false,
     // Language to operate Agent Laboratory in.
     "language": "English",

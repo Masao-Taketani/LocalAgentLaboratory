@@ -47,7 +47,7 @@ investigation purposes.
 
 ## Modification
 I have made some modifications in this repo from the original one.
-- Enable you to use local LLMs, which includes recently announced thinking models such as  [**DeepSeek R1**](https://github.com/deepseek-ai/DeepSeek-R1) or [**QwQ**](https://qwenlm.github.io/blog/qwq-32b/), instead of cloud ones
+- Enable you to use local LLMs, which includes recently announced reasoning models such as  [**DeepSeek R1**](https://github.com/deepseek-ai/DeepSeek-R1) or [**QwQ**](https://qwenlm.github.io/blog/qwq-32b/), instead of cloud ones
 - Fixed some prompts for clearer instructions
 - Made arguments and some crucial parameters configurable using a JSON config file. For details, please check [config.json](config.json)
 - Enable you to override arguments such as a model selection for each phase using the config file explained above even when you restart with a previously saved state file. The original repo does not allow that unless you modify the code since all the instance variables of `LaboratoryWorkflow` that contain those arguments are all set when the class is instantiated and are saved as part of the state files. Due to that, when you restart with one of those state files, the instance still uses the same arguments that were set when instantiated
@@ -79,10 +79,10 @@ I have made some modifications in this repo from the original one.
 </p>
 
 ### Supported Platforms and Models
-For this repo, any models from Ollama or Hugging Face, including the recently-announced thinking models, such as DeepSeek R1 and QwQ-32B, are supported to be used as local LLMs. 
+For this repo, any models from Ollama or Hugging Face, including the recently-announced reasoning models, such as DeepSeek R1 and QwQ-32B, are supported to be used as local LLMs. 
 So, pick a platform either `huggingface` or `ollama` with [`platform`](config.json#L24) argument.
 
-If you'd like to check thought processes when you use one of the aforementioned thinking models, set a flag named [`show_thought`](config.json#L46) as `true`. That way, you can see the thought processes in your console!
+If you'd like to check thought processes when you use one of the aforementioned reasoning models, set a flag named [`show_thought`](config.json#L46) as `true`. That way, you can see the thought processes in your console!
 
 
 ## Environmental Setup
