@@ -45,7 +45,7 @@ def query_model(platform, model_or_pipe, prompt, system_prompt, tries=5, timeout
                 system_prompt_json = json.dumps(system_prompt_dic)
                 prompt_json = json.dumps(prompt_dic)
                 messages = rf"""[{system_prompt_json}, {prompt_json}]"""
-                args = rf"""{{"model": "{model_or_pipe}", "messages": {messages}, "options": {{"num_ctx": {num_ctx}}}, "stream": false}}"""
+                args = rf"""{{"model": "{model_or_pipe}", "messages": {messages}, "options": {{"num_ctx": {num_ctx}, "temperature": {temp}}}, "stream": false}}"""
                 with open("tmp_args.txt","w") as f:
                     f.write(args)
                 command = ["curl", "http://localhost:11434/api/chat", "-d", "@tmp_args.txt"]
